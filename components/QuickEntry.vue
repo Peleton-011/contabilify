@@ -1,0 +1,399 @@
+<script setup lang="ts">
+import type { Entidad, TipoMovimiento } from '~/types/schema'
+
+const emit = defineEmits<{
+  guardado: []
+}>()
+
+type Paso = 'tipo' | 'monto' | 'entidad' | 'concepto' | 'cuenta' | 'fecha'
+const PASOS: Paso[] = ['tipo', 'monto', 'entidad', 'concepto', 'cuenta', 'fecha']
+
+const { cuentas, fetchCuentas } = useCuentas()
+const { entidadesPorFrecuencia, fetchEntidades } = useEntidades()
+const { crearMovimiento } = useMovimientos()
+const { ultimaFecha, actualizar: actualizarUltimaFecha, cargarDesdeStorage } = useUltimaFecha()
+const user = useSupabaseUser()
+
+await Promise.all([fetchCuentas(), fetchEntidades()])
+cargarDesdeStorage()
+
+const pasoActual = ref<Paso>('tipo')
+const indicePaso = computed(() => PASOS.indexOf(pasoActual.value))
+
+const tipo = ref<TipoMovimiento | null>(null)
+const montoTexto = ref('')
+const entidadId = ref<string | null>(null)
+const entidadNombre = ref('')
+const concepto = ref('')
+const conceptoTocado = ref(false)
+const cuentaId = ref<string | null>(null)
+const fecha = ref(ultimaFecha.value)
+
+const guardando = ref(false)
+const error = ref<string | null>(null)
+const guardadoOk = ref(false)
+
+const montoInputRef = ref<HTMLInputElement | null>(null)
+const conceptoInputRef = ref<HTMLInputElement | null>(null)
+const entitySelectRef = ref<{ focus: () => void } | null>(null)
+
+const montoNumero = computed(() => {
+  const valor = Number(montoTexto.value.replace(',', '.'))
+  return Number.isFinite(valor) ? valor : NaN
+})
+
+const montoValido = computed(() => montoNumero.value > 0)
+
+watch(cuentaId, () => {}, { flush: 'post' })
+
+// Preselecciona la única cuenta activa, si hay una sola
+watch(
+  cuentas,
+  (lista) => {
+    if (lista.length === 1 && !cuentaId.value) cuentaId.value = lista[0].id
+  },
+  { immediate: true }
+)
+
+function irA(paso: Paso) {
+  error.value = null
+  pasoActual.value = paso
+  nextTick(() => {
+    if (paso === 'monto') montoInputRef.value?.focus()
+    if (paso === 'entidad') entitySelectRef.value?.focus()
+    if (paso === 'concepto') conceptoInputRef.value?.focus()
+  })
+}
+
+function elegirTipo(valor: TipoMovimiento) {
+  tipo.value = valor
+  irA('monto')
+}
+
+function confirmarMonto() {
+  if (!montoValido.value) {
+    error.value = 'Ingresá un monto mayor a cero'
+    return
+  }
+  irA('entidad')
+}
+
+function alSeleccionarEntidad(entidad: Entidad | null) {
+  entidadNombre.value = entidad?.nombre ?? ''
+  if (!conceptoTocado.value) concepto.value = entidad?.nombre ?? ''
+}
+
+function continuarDesdeEntidad() {
+  irA('concepto')
+}
+
+function confirmarConcepto() {
+  if (!concepto.value.trim()) {
+    error.value = 'Ingresá un concepto para el movimiento'
+    return
+  }
+  irA('cuenta')
+}
+
+function elegirCuenta(id: string) {
+  cuentaId.value = id
+  irA('fecha')
+}
+
+const resumen = computed(() => {
+  const cuenta = cuentas.value.find((c) => c.id === cuentaId.value)
+  return {
+    tipoLabel: tipo.value === 'ingreso' ? 'Ingreso' : 'Egreso',
+    monto: Number.isFinite(montoNumero.value) ? formatoMonto(montoNumero.value) : '—',
+    entidad: entidadNombre.value || 'Sin entidad',
+    concepto: concepto.value || '—',
+    cuenta: cuenta?.nombre ?? '—',
+  }
+})
+
+async function guardar() {
+  if (!tipo.value || !cuentaId.value || !montoValido.value || !concepto.value.trim()) {
+    error.value = 'Faltan datos por completar'
+    return
+  }
+  const fechaNormalizada = normalizarFecha(fecha.value)
+  if (!fechaNormalizada) {
+    error.value = 'La fecha no es válida'
+    return
+  }
+
+  guardando.value = true
+  error.value = null
+  try {
+    await crearMovimiento({
+      fecha: fechaNormalizada,
+      tipo: tipo.value,
+      monto: montoNumero.value,
+      concepto: concepto.value.trim(),
+      entidad_id: entidadId.value,
+      cuenta_id: cuentaId.value,
+      notas: null,
+      metadata: {},
+      created_by: user.value?.id ?? null,
+    })
+
+    actualizarUltimaFecha(fechaNormalizada)
+    guardadoOk.value = true
+    emit('guardado')
+    reiniciar({ mantenerCuenta: true })
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'No se pudo guardar el movimiento'
+  } finally {
+    guardando.value = false
+  }
+}
+
+function reiniciar(opciones: { mantenerCuenta?: boolean } = {}) {
+  tipo.value = null
+  montoTexto.value = ''
+  entidadId.value = null
+  entidadNombre.value = ''
+  concepto.value = ''
+  conceptoTocado.value = false
+  if (!opciones.mantenerCuenta) cuentaId.value = null
+  fecha.value = ultimaFecha.value
+  pasoActual.value = 'tipo'
+}
+
+watch(concepto, () => {
+  conceptoTocado.value = true
+})
+
+function alPresionarEnterMonto(evento: KeyboardEvent) {
+  evento.preventDefault()
+  confirmarMonto()
+}
+
+function alPresionarEnterConcepto(evento: KeyboardEvent) {
+  evento.preventDefault()
+  confirmarConcepto()
+}
+</script>
+
+<template>
+  <div class="quick-entry card">
+    <div class="qe-header">
+      <div class="qe-progress">
+        <span
+          v-for="(paso, i) in PASOS"
+          :key="paso"
+          class="qe-dot"
+          :class="{ activo: i <= indicePaso }"
+        />
+      </div>
+      <button
+        v-if="pasoActual !== 'tipo'"
+        type="button"
+        class="btn btn-ghost qe-back"
+        @click="irA(PASOS[Math.max(0, indicePaso - 1)])"
+      >
+        ← Atrás
+      </button>
+    </div>
+
+    <transition name="fade" mode="out-in">
+      <!-- Paso 1: tipo -->
+      <div v-if="pasoActual === 'tipo'" key="tipo" class="qe-step">
+        <h2>¿Ingreso o egreso?</h2>
+        <div class="qe-choice-grid">
+          <button type="button" class="btn btn-lg choice-ingreso" @click="elegirTipo('ingreso')">
+            Ingreso
+          </button>
+          <button type="button" class="btn btn-lg choice-egreso" @click="elegirTipo('egreso')">
+            Egreso
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 2: monto -->
+      <div v-else-if="pasoActual === 'monto'" key="monto" class="qe-step">
+        <h2>Monto del {{ tipo }}</h2>
+        <input
+          ref="montoInputRef"
+          v-model="montoTexto"
+          type="number"
+          inputmode="decimal"
+          min="0"
+          step="0.01"
+          placeholder="0.00"
+          class="input qe-monto-input"
+          @keydown.enter="alPresionarEnterMonto"
+        >
+        <button type="button" class="btn btn-primary btn-block btn-lg" @click="confirmarMonto">
+          Continuar
+        </button>
+      </div>
+
+      <!-- Paso 3: entidad -->
+      <div v-else-if="pasoActual === 'entidad'" key="entidad" class="qe-step">
+        <h2>¿Con quién es la operación?</h2>
+        <EntitySelect
+          ref="entitySelectRef"
+          v-model="entidadId"
+          :entidades="entidadesPorFrecuencia"
+          @seleccionada="alSeleccionarEntidad"
+        />
+        <button type="button" class="btn btn-primary btn-block btn-lg" @click="continuarDesdeEntidad">
+          Continuar
+        </button>
+      </div>
+
+      <!-- Paso 4: concepto -->
+      <div v-else-if="pasoActual === 'concepto'" key="concepto" class="qe-step">
+        <h2>Concepto</h2>
+        <input
+          ref="conceptoInputRef"
+          v-model="concepto"
+          type="text"
+          placeholder="Descripción breve del movimiento"
+          class="input"
+          @keydown.enter="alPresionarEnterConcepto"
+        >
+        <button type="button" class="btn btn-primary btn-block btn-lg" @click="confirmarConcepto">
+          Continuar
+        </button>
+      </div>
+
+      <!-- Paso 5: cuenta -->
+      <div v-else-if="pasoActual === 'cuenta'" key="cuenta" class="qe-step">
+        <h2>¿Caja o banco?</h2>
+        <div class="qe-choice-grid">
+          <button
+            v-for="cuenta in cuentas"
+            :key="cuenta.id"
+            type="button"
+            class="btn btn-lg qe-cuenta-btn"
+            :class="{ activo: cuentaId === cuenta.id }"
+            @click="elegirCuenta(cuenta.id)"
+          >
+            {{ cuenta.nombre }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Paso 6: fecha + confirmación -->
+      <div v-else key="fecha" class="qe-step">
+        <h2>Fecha</h2>
+        <DateStepper v-model="fecha" />
+
+        <div class="qe-summary">
+          <div class="row"><span class="text-muted">Tipo</span><span class="spacer" /><span :class="tipo === 'ingreso' ? 'text-ingreso' : 'text-egreso'">{{ resumen.tipoLabel }}</span></div>
+          <div class="row"><span class="text-muted">Monto</span><span class="spacer" /><strong>{{ resumen.monto }}</strong></div>
+          <div class="row"><span class="text-muted">Entidad</span><span class="spacer" /><span>{{ resumen.entidad }}</span></div>
+          <div class="row"><span class="text-muted">Concepto</span><span class="spacer" /><span>{{ resumen.concepto }}</span></div>
+          <div class="row"><span class="text-muted">Cuenta</span><span class="spacer" /><span>{{ resumen.cuenta }}</span></div>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-block btn-lg" :disabled="guardando" @click="guardar">
+          {{ guardando ? 'Guardando…' : 'Guardar movimiento' }}
+        </button>
+      </div>
+    </transition>
+
+    <p v-if="error" class="alert alert-error">{{ error }}</p>
+    <p v-if="guardadoOk && !error" class="alert alert-ok">Movimiento guardado. ¡Listo para el siguiente!</p>
+  </div>
+</template>
+
+<style scoped>
+.quick-entry {
+  max-width: 420px;
+  margin: 0 auto;
+}
+
+.qe-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+}
+
+.qe-progress {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.qe-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-border);
+}
+
+.qe-dot.activo {
+  background: var(--color-primary);
+}
+
+.qe-back {
+  font-size: 0.85rem;
+  padding: 0.3em 0.6em;
+}
+
+.qe-step h2 {
+  font-size: 1.15rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  text-transform: capitalize;
+}
+
+.qe-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.qe-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.choice-ingreso {
+  background: var(--color-ingreso-bg);
+  color: var(--color-ingreso);
+  border-color: var(--color-ingreso);
+}
+
+.choice-egreso {
+  background: var(--color-egreso-bg);
+  color: var(--color-egreso);
+  border-color: var(--color-egreso);
+}
+
+.qe-cuenta-btn.activo {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
+}
+
+.qe-monto-input {
+  text-align: center;
+  font-size: 1.6rem;
+  font-weight: 700;
+  padding: 0.5em;
+}
+
+.qe-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 0.9rem 1rem;
+}
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.12s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
