@@ -2,7 +2,7 @@
 
 Aplicación en Vue/Nuxt 3 para llevar el control de ingresos y egresos de una
 asociación cultural (caja y banco), con un modo de **carga rápida** pensado
-para cargar movimientos en pocos toques desde el celular.
+para cargar movimientos en pocos toques desde el móvil.
 
 ## Stack
 
@@ -27,7 +27,7 @@ El esquema está pensado para poder ajustarse más adelante sin romper nada:
 - **`profiles`**: guarda el rol de cada usuario (`member` o `admin`).
 
 Todo el esquema vive en [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql).
-Si más adelante querés agregar una columna (por ejemplo `medio_pago`),
+Si más adelante quieres agregar una columna (por ejemplo `medio_pago`),
 alcanza con una migración nueva y actualizar `types/schema.ts`.
 
 ## Roles
@@ -43,18 +43,18 @@ desde la consola del navegador, no puede escribir datos sin ser admin.
 
 ## Configuración de Supabase
 
-1. Creá un proyecto en [supabase.com](https://supabase.com).
-2. En el **SQL Editor**, ejecutá el contenido de
+1. Crea un proyecto en [supabase.com](https://supabase.com).
+2. En el **SQL Editor**, ejecuta el contenido de
    `supabase/migrations/0001_init.sql`. Esto crea las tablas, la vista de
    saldos y las políticas de RLS (y dos cuentas por defecto: "Caja" y "Banco").
-3. En **Authentication > Providers**, dejá habilitado el login por
+3. En **Authentication > Providers**, deja habilitado el inicio de sesión por
    email/contraseña. Se recomienda **desactivar el alta pública** (o invitar
-   usuarios manualmente desde el panel) ya que es una app de uso interno.
-4. Invitá a los usuarios de la asociación desde **Authentication > Users**.
+   a los usuarios manualmente desde el panel) ya que es una aplicación de uso interno.
+4. Invita a los usuarios de la asociación desde **Authentication > Users**.
    Al crearse el usuario, un trigger crea automáticamente su fila en
    `profiles` con rol `member`.
-5. Para convertirte en `admin` (necesario para poder cargar datos), corré en
-   el SQL Editor, reemplazando por tu email:
+5. Para convertirte en `admin` (necesario para poder cargar datos), ejecuta en
+   el SQL Editor lo siguiente, sustituyendo tu correo electrónico:
 
    ```sql
    update public.profiles
@@ -62,32 +62,32 @@ desde la consola del navegador, no puede escribir datos sin ser admin.
    where id = (select id from auth.users where email = 'tu-correo@ejemplo.com');
    ```
 
-6. Copiá `.env.example` a `.env` y completá `SUPABASE_URL` y `SUPABASE_KEY`
+6. Copia `.env.example` a `.env` y completa `SUPABASE_URL` y `SUPABASE_KEY`
    con los datos de **Project Settings > API**.
 
 ## Mantener activo el proyecto de Supabase (deploy en Vercel)
 
 El plan gratuito de Supabase pausa los proyectos tras ~7 días sin actividad.
-Si desplegás en Vercel, `vercel.json` ya incluye un **Cron Job** diario que
-pega contra `/api/keepalive` (`server/api/keepalive.get.ts`), el cual hace
-una consulta real a la base (con la service role key, para no depender de
-ninguna sesión) y así cuenta como actividad.
+Si despliegas en Vercel, `vercel.json` ya incluye un **Cron Job** diario que
+llama a `/api/keepalive` (`server/api/keepalive.get.ts`), el cual hace
+una consulta real a la base de datos (con la service role key, para no
+depender de ninguna sesión) y así cuenta como actividad.
 
 Para activarlo:
 
-1. En **Supabase > Project Settings > API**, copiá la **`service_role` key**
-   (secreta, nunca la expongas en el cliente) y cargala en Vercel como
+1. En **Supabase > Project Settings > API**, copia la **`service_role` key**
+   (secreta, nunca la expongas en el cliente) y cárgala en Vercel como
    variable de entorno `SUPABASE_SERVICE_KEY`.
-2. Generá un string aleatorio largo y cargalo en Vercel como `CRON_SECRET`
-   (por ejemplo con `openssl rand -hex 32`). Vercel agrega automáticamente
-   ese valor como header `Authorization: Bearer <CRON_SECRET>` en cada
-   invocación del cron, y el endpoint lo valida antes de consultar la base.
+2. Genera una cadena aleatoria larga y cárgala en Vercel como `CRON_SECRET`
+   (por ejemplo con `openssl rand -hex 32`). Vercel añade automáticamente
+   ese valor como cabecera `Authorization: Bearer <CRON_SECRET>` en cada
+   invocación del cron, y el endpoint la valida antes de consultar la base.
 3. Con eso ya cargado, el cron definido en `vercel.json` (`0 8 * * *`, una
-   vez por día) queda activo apenas desplegás. El plan Hobby de Vercel
-   limita los cron jobs a una ejecución diaria, pero alcanza de sobra para
-   evitar la pausa por inactividad de Supabase.
+   vez al día) queda activo en cuanto despliegues. El plan Hobby de Vercel
+   limita los cron jobs a una ejecución diaria, pero es más que suficiente
+   para evitar la pausa por inactividad de Supabase.
 
-Si preferís no depender de Vercel, `/api/keepalive` funciona igual con
+Si prefieres no depender de Vercel, `/api/keepalive` funciona igual con
 cualquier otro disparador externo (por ejemplo un workflow de GitHub
 Actions con `schedule:`), pasando el mismo `CRON_SECRET` como Bearer token.
 
@@ -131,12 +131,12 @@ types/
 
 ## Decisiones a revisar / fáciles de cambiar
 
-- **Moneda**: se formatea como pesos argentinos (`es-AR` / `ARS`) en
-  `utils/moneda.ts`. Cambiá esas dos constantes si corresponde otra moneda.
+- **Moneda**: se formatea como euros (`es-ES` / `EUR`) en `utils/moneda.ts`.
+  Cambia esas dos constantes si corresponde otra moneda.
 - **Lista de entidades**: es una tabla editable a mano (`/entidades`), pero el
-  orden en el dropdown de la carga rápida es dinámico según cuántas veces se
-  usó cada una. Si preferís un orden totalmente manual, se puede agregar una
-  columna `orden` a `entidades` sin tocar el resto del sistema.
-- **Campos nuevos en movimientos**: usá la columna `metadata` (jsonb) para
-  probar campos nuevos sin migración, y "subilos" a columna propia cuando se
+  orden en el desplegable de la carga rápida es dinámico según cuántas veces
+  se ha usado cada una. Si prefieres un orden totalmente manual, se puede
+  añadir una columna `orden` a `entidades` sin tocar el resto del sistema.
+- **Campos nuevos en movimientos**: usa la columna `metadata` (jsonb) para
+  probar campos nuevos sin migración, y "súbelos" a columna propia cuando se
   vuelvan permanentes.

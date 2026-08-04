@@ -53,7 +53,7 @@ async function borrar(id: string, nombre: string) {
     <h1>Entidades</h1>
     <p class="text-muted">
       Proveedores, socios y demás entidades que aparecen como opciones en la carga rápida.
-      Se ordenan automáticamente por frecuencia de uso; acá podés editar la lista manualmente.
+      Se ordenan automáticamente por frecuencia de uso; aquí puedes editar la lista manualmente.
     </p>
 
     <form class="card row" @submit.prevent="agregar">

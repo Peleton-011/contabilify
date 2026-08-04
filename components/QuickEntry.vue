@@ -72,7 +72,7 @@ function elegirTipo(valor: TipoMovimiento) {
 
 function confirmarMonto() {
   if (!montoValido.value) {
-    error.value = 'Ingresá un monto mayor a cero'
+    error.value = 'Ingresa un monto mayor a cero'
     return
   }
   irA('entidad')
@@ -89,7 +89,7 @@ function continuarDesdeEntidad() {
 
 function confirmarConcepto() {
   if (!concepto.value.trim()) {
-    error.value = 'Ingresá un concepto para el movimiento'
+    error.value = 'Ingresa un concepto para el movimiento'
     return
   }
   irA('cuenta')

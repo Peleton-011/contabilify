@@ -24,7 +24,7 @@ async function refrescar() {
 
     <QuickEntry v-if="isAdmin" @guardado="refrescar" />
     <p v-else class="card text-muted">
-      Solo los administradores pueden cargar movimientos. Podés ver el detalle en
+      Solo los administradores pueden cargar movimientos. Puedes ver el detalle en
       <NuxtLink to="/movimientos">Movimientos</NuxtLink>.
     </p>
 

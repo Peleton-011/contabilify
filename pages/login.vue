@@ -37,7 +37,7 @@ async function iniciarSesion() {
 <template>
   <div class="card login-card">
     <h1 class="login-title">Contabilify</h1>
-    <p class="text-muted login-sub">Ingresá con tu cuenta para continuar</p>
+    <p class="text-muted login-sub">Inicia sesión con tu cuenta para continuar</p>
 
     <form class="stack" @submit.prevent="iniciarSesion">
       <div class="field">
@@ -72,7 +72,7 @@ async function iniciarSesion() {
     </form>
 
     <p class="text-muted login-help">
-      ¿No tenés cuenta? Pedile al administrador de la asociación que te invite.
+      ¿No tienes cuenta? Pídele al administrador de la asociación que te invite.
     </p>
   </div>
 </template>

@@ -1,7 +1,7 @@
-// Configuración de moneda: cambiá estos dos valores según tu país/moneda.
+// Configuración de moneda: cambia estos dos valores según tu país/moneda.
 // (No se asumió una moneda específica ya que el esquema es adaptable.)
-const LOCALE_MONEDA = 'es-AR'
-const CODIGO_MONEDA = 'ARS'
+const LOCALE_MONEDA = 'es-ES'
+const CODIGO_MONEDA = 'EUR'
 
 const FORMATEADOR_MONTO = new Intl.NumberFormat(LOCALE_MONEDA, {
   style: 'currency',

@@ -40,7 +40,7 @@ export function sumarDias(fechaISO: string, delta: number): string {
   return fecha.toISOString().slice(0, 10)
 }
 
-const FORMATEADOR_LEGIBLE = new Intl.DateTimeFormat('es-AR', {
+const FORMATEADOR_LEGIBLE = new Intl.DateTimeFormat('es-ES', {
   weekday: 'short',
   day: '2-digit',
   month: 'short',

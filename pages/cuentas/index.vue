@@ -42,7 +42,7 @@ async function alternarActiva(id: string, activa: boolean) {
 async function borrar(id: string, nombre: string) {
   if (
     !confirm(
-      `¿Eliminar la cuenta "${nombre}"? Si tiene movimientos cargados, esto va a fallar: desactivala en cambio.`
+      `¿Eliminar la cuenta "${nombre}"? Si tiene movimientos cargados, esto fallará: desactívala en su lugar.`
     )
   )
     return

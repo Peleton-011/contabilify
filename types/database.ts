@@ -2,7 +2,7 @@ import type { Cuenta, Entidad, Movimiento, Profile, SaldoCuenta } from './schema
 
 // Tipado mínimo de la base para el cliente de Supabase. No cubre todas las
 // variantes de Postgres, solo lo necesario para autocompletar en los
-// composables. Si agregás columnas nuevas, sumalas acá también.
+// composables. Si añades columnas nuevas, súmalas aquí también.
 export interface Database {
   public: {
     Tables: {
