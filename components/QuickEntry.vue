@@ -38,7 +38,7 @@ const conceptoInputRef = ref<HTMLInputElement | null>(null)
 const entitySelectRef = ref<{ focus: () => void } | null>(null)
 
 const montoNumero = computed(() => {
-  const valor = Number(montoTexto.value.replace(',', '.'))
+  const valor = parseMonto(montoTexto.value)
   return Number.isFinite(valor) ? valor : NaN
 })
 
@@ -216,11 +216,9 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
         <input
           ref="montoInputRef"
           v-model="montoTexto"
-          type="number"
+          type="text"
           inputmode="decimal"
-          min="0"
-          step="0.01"
-          placeholder="0.00"
+          placeholder="0,00"
           class="input qe-monto-input"
           @keydown.enter="alPresionarEnterMonto"
         >

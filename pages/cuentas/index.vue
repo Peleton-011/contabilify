@@ -10,24 +10,31 @@ await fetchCuentas(false)
 const nuevo = reactive({
   nombre: '',
   tipo: 'otro' as TipoCuenta,
-  saldo_inicial: 0,
+  saldoInicialTexto: '',
 })
 const creando = ref(false)
 const error = ref<string | null>(null)
 
 async function agregar() {
   if (!nuevo.nombre.trim()) return
+
+  const saldoInicial = nuevo.saldoInicialTexto.trim() ? parseMonto(nuevo.saldoInicialTexto) : 0
+  if (!Number.isFinite(saldoInicial)) {
+    error.value = 'El saldo inicial no es un número válido'
+    return
+  }
+
   creando.value = true
   error.value = null
   try {
     await crearCuenta({
       nombre: nuevo.nombre.trim(),
       tipo: nuevo.tipo,
-      saldo_inicial: nuevo.saldo_inicial,
+      saldo_inicial: saldoInicial,
       orden: cuentas.value.length + 1,
     })
     nuevo.nombre = ''
-    nuevo.saldo_inicial = 0
+    nuevo.saldoInicialTexto = ''
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'No se pudo crear la cuenta'
   } finally {
@@ -77,7 +84,14 @@ async function borrar(id: string, nombre: string) {
       </div>
       <div class="field">
         <label for="c-saldo">Saldo inicial</label>
-        <input id="c-saldo" v-model.number="nuevo.saldo_inicial" type="number" step="0.01" class="input">
+        <input
+          id="c-saldo"
+          v-model="nuevo.saldoInicialTexto"
+          type="text"
+          inputmode="decimal"
+          placeholder="0,00"
+          class="input"
+        >
       </div>
       <button type="submit" class="btn btn-primary" :disabled="creando">Agregar cuenta</button>
     </form>

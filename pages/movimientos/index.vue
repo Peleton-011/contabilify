@@ -43,7 +43,7 @@ const editandoId = ref<string | null>(null)
 const edicion = reactive({
   fecha: '',
   tipo: 'ingreso' as 'ingreso' | 'egreso',
-  monto: 0,
+  montoTexto: '',
   concepto: '',
   entidad_id: '' as string | '',
   cuenta_id: '',
@@ -55,7 +55,7 @@ function empezarEdicion(m: MovimientoConRelaciones) {
   editandoId.value = m.id
   edicion.fecha = m.fecha
   edicion.tipo = m.tipo
-  edicion.monto = m.monto
+  edicion.montoTexto = String(m.monto)
   edicion.concepto = m.concepto
   edicion.entidad_id = m.entidad_id ?? ''
   edicion.cuenta_id = m.cuenta_id
@@ -73,7 +73,8 @@ async function guardarEdicion(id: string) {
     errorEdicion.value = 'La fecha no es válida'
     return
   }
-  if (!(edicion.monto > 0)) {
+  const monto = parseMonto(edicion.montoTexto)
+  if (!(monto > 0)) {
     errorEdicion.value = 'El monto debe ser mayor a cero'
     return
   }
@@ -88,7 +89,7 @@ async function guardarEdicion(id: string) {
     await actualizarMovimiento(id, {
       fecha: fechaNormalizada,
       tipo: edicion.tipo,
-      monto: edicion.monto,
+      monto,
       concepto: edicion.concepto.trim(),
       entidad_id: edicion.entidad_id || null,
       cuenta_id: edicion.cuenta_id,
@@ -218,7 +219,7 @@ async function borrar(m: MovimientoConRelaciones) {
                   <option v-for="c in cuentas" :key="c.id" :value="c.id">{{ c.nombre }}</option>
                 </select>
               </td>
-              <td><input v-model.number="edicion.monto" type="number" step="0.01" class="input"></td>
+              <td><input v-model="edicion.montoTexto" type="text" inputmode="decimal" class="input"></td>
               <td class="row acciones">
                 <button
                   type="button"
