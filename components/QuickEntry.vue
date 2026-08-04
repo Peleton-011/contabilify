@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Entidad, TipoMovimiento } from '~/types/schema'
+import { formatoMonto, parseMonto } from '~/utils/moneda'
 
 const emit = defineEmits<{
   guardado: []
