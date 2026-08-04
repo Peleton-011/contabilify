@@ -65,6 +65,32 @@ desde la consola del navegador, no puede escribir datos sin ser admin.
 6. Copiá `.env.example` a `.env` y completá `SUPABASE_URL` y `SUPABASE_KEY`
    con los datos de **Project Settings > API**.
 
+## Mantener activo el proyecto de Supabase (deploy en Vercel)
+
+El plan gratuito de Supabase pausa los proyectos tras ~7 días sin actividad.
+Si desplegás en Vercel, `vercel.json` ya incluye un **Cron Job** diario que
+pega contra `/api/keepalive` (`server/api/keepalive.get.ts`), el cual hace
+una consulta real a la base (con la service role key, para no depender de
+ninguna sesión) y así cuenta como actividad.
+
+Para activarlo:
+
+1. En **Supabase > Project Settings > API**, copiá la **`service_role` key**
+   (secreta, nunca la expongas en el cliente) y cargala en Vercel como
+   variable de entorno `SUPABASE_SERVICE_KEY`.
+2. Generá un string aleatorio largo y cargalo en Vercel como `CRON_SECRET`
+   (por ejemplo con `openssl rand -hex 32`). Vercel agrega automáticamente
+   ese valor como header `Authorization: Bearer <CRON_SECRET>` en cada
+   invocación del cron, y el endpoint lo valida antes de consultar la base.
+3. Con eso ya cargado, el cron definido en `vercel.json` (`0 8 * * *`, una
+   vez por día) queda activo apenas desplegás. El plan Hobby de Vercel
+   limita los cron jobs a una ejecución diaria, pero alcanza de sobra para
+   evitar la pausa por inactividad de Supabase.
+
+Si preferís no depender de Vercel, `/api/keepalive` funciona igual con
+cualquier otro disparador externo (por ejemplo un workflow de GitHub
+Actions con `schedule:`), pasando el mismo `CRON_SECRET` como Bearer token.
+
 ## Desarrollo local
 
 ```bash

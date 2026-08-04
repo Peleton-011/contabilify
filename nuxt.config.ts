@@ -14,6 +14,12 @@ export default defineNuxtConfig({
     },
   },
 
+  runtimeConfig: {
+    // Secreto para autenticar al cron de keepalive (server/api/keepalive.get.ts).
+    // Se define en Vercel como variable de entorno CRON_SECRET.
+    cronSecret: process.env.CRON_SECRET,
+  },
+
   css: ['~/assets/css/main.css'],
 
   app: {
