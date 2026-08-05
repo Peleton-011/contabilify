@@ -3,14 +3,29 @@ defineProps<{
   nombre: string
   saldo: number
   destacado?: boolean
+  seleccionable?: boolean
+  seleccionada?: boolean
+}>()
+
+defineEmits<{
+  click: []
 }>()
 </script>
 
 <template>
-  <div class="card balance-card" :class="{ destacado }">
+  <component
+    :is="seleccionable ? 'button' : 'div'"
+    :type="seleccionable ? 'button' : undefined"
+    class="card balance-card"
+    :class="{ destacado, seleccionable, seleccionada }"
+    @click="seleccionable && $emit('click')"
+  >
     <span class="balance-nombre text-muted">{{ nombre }}</span>
     <span class="balance-monto">{{ formatoMonto(saldo) }}</span>
-  </div>
+    <span v-if="seleccionable" class="balance-estado" :class="{ activa: seleccionada }">
+      {{ seleccionada ? '✓ Cuenta activa' : 'Elegir como cuenta activa' }}
+    </span>
+  </component>
 </template>
 
 <style scoped>
@@ -24,6 +39,24 @@ defineProps<{
   border-color: var(--color-primary);
 }
 
+.balance-card.seleccionable {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.balance-card.seleccionable:hover {
+  border-color: var(--color-primary);
+}
+
+.balance-card.seleccionada {
+  border-color: var(--color-primary);
+  border-width: 2px;
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
 .balance-nombre {
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -34,5 +67,15 @@ defineProps<{
 .balance-monto {
   font-size: 1.5rem;
   font-weight: 800;
+}
+
+.balance-estado {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.balance-estado.activa {
+  color: var(--color-primary);
 }
 </style>

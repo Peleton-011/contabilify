@@ -41,6 +41,23 @@ La restricción real vive en las políticas de **Row Level Security** de
 Postgres (no solo en la interfaz), así que aunque alguien manipule la app
 desde la consola del navegador, no puede escribir datos sin ser admin.
 
+## Carga rápida
+
+La cuenta sobre la que se cargan los movimientos (**cuenta activa**) no es un
+paso más del formulario: se elige tocando su tarjeta de saldo en el panel
+principal, ya que en el uso normal se cargan varios movimientos seguidos
+contra una misma cuenta. La tarjeta seleccionada queda resaltada y la
+elección se recuerda entre sesiones (`localStorage`).
+
+El paso "¿Con quién es la operación?" también permite registrar una
+**transferencia entre cuentas propias** en lugar de una entidad externa: al
+elegir "Transferir a/desde [otra cuenta]" se generan dos movimientos
+vinculados (un egreso en la cuenta de origen y un ingreso en la de destino,
+mismo monto y fecha) enlazados por `metadata.transferencia_id` — sin
+necesidad de ninguna columna nueva. Al eliminar o editar un movimiento que
+forma parte de una transferencia, la otra mitad no se actualiza sola; hay
+que hacerlo aparte (se avisa al eliminar desde `/movimientos`).
+
 ## Configuración de Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
@@ -105,17 +122,18 @@ La app queda disponible en `http://localhost:3000`. Cualquier ruta salvo
 
 ```
 components/
-  QuickEntry.vue      # el flujo de carga rápida (tipo → monto → entidad → concepto → cuenta → fecha)
+  QuickEntry.vue      # el flujo de carga rápida (tipo → monto → entidad/transferencia → concepto → fecha)
   EntitySelect.vue     # combo de entidades con búsqueda + alta rápida de una nueva
   DateStepper.vue      # input de fecha aaaa-mm-dd con flechas +1/-1 día
-  BalanceCard.vue
+  BalanceCard.vue      # tarjeta de saldo, seleccionable para elegir la cuenta activa
 composables/
   useProfile.ts         # perfil y rol del usuario actual
   useCuentas.ts
   useEntidades.ts
-  useMovimientos.ts
+  useMovimientos.ts    # incluye crearTransferencia (par de movimientos vinculados)
   useSaldos.ts          # saldo actual por cuenta (vista `saldos_cuentas`)
   useUltimaFecha.ts      # recuerda la última fecha usada en la carga rápida
+  useCuentaActiva.ts     # cuenta activa para la carga rápida (elegida desde el dashboard)
 pages/
   login.vue
   index.vue              # dashboard: saldos + carga rápida + últimos movimientos
