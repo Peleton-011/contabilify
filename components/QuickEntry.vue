@@ -174,6 +174,9 @@ async function guardar() {
     guardadoOk.value = true
     emit('guardado')
     reiniciar()
+    // Refresca los conteos de uso para que el próximo movimiento de esta
+    // misma sesión ya vea reflejada la frecuencia recién actualizada.
+    fetchEntidades()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'No se pudo guardar el movimiento'
   } finally {

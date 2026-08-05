@@ -16,6 +16,7 @@ export type Rol = 'member' | 'admin'
 export type Profile = {
   id: string
   full_name: string | null
+  email: string | null
   role: Rol
   created_at: string
 }

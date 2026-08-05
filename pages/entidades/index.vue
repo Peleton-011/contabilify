@@ -1,8 +1,14 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'admin' })
 
-const { entidades, fetchEntidades, crearEntidad, actualizarEntidad, eliminarEntidad } =
-  useEntidades()
+const {
+  entidadesTodasPorFrecuencia,
+  usoPorEntidad,
+  fetchEntidades,
+  crearEntidad,
+  actualizarEntidad,
+  eliminarEntidad,
+} = useEntidades()
 
 await fetchEntidades()
 
@@ -73,15 +79,16 @@ async function borrar(id: string, nombre: string) {
         <thead>
           <tr>
             <th>Nombre</th>
+            <th>Usos</th>
             <th>Estado</th>
             <th></th>
           </tr>
         </thead>
         <tbody>
-          <tr v-if="!entidades.length">
-            <td colspan="3" class="text-muted">Todavía no hay entidades cargadas.</td>
+          <tr v-if="!entidadesTodasPorFrecuencia.length">
+            <td colspan="4" class="text-muted">Todavía no hay entidades cargadas.</td>
           </tr>
-          <tr v-for="e in entidades" :key="e.id">
+          <tr v-for="e in entidadesTodasPorFrecuencia" :key="e.id">
             <td>
               <input
                 v-if="editandoId === e.id"
@@ -92,6 +99,7 @@ async function borrar(id: string, nombre: string) {
               >
               <span v-else>{{ e.nombre }}</span>
             </td>
+            <td class="text-muted">{{ usoPorEntidad[e.id] ?? 0 }}</td>
             <td>
               <span class="badge" :class="e.activa ? 'badge-ingreso' : 'badge-egreso'">
                 {{ e.activa ? 'activa' : 'inactiva' }}

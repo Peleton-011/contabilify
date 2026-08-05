@@ -23,7 +23,8 @@ export function useEntidades() {
     const uso: Record<string, number> = {}
     if (!errUso) {
       for (const fila of usos ?? []) {
-        uso[fila.entidad_id as string] = fila.usos as number
+        // count(*) llega como bigint; postgrest lo serializa como string.
+        uso[fila.entidad_id as string] = Number(fila.usos)
       }
     }
     usoPorEntidad.value = uso
@@ -32,12 +33,18 @@ export function useEntidades() {
 
   const entidadesActivas = computed(() => entidades.value.filter((e) => e.activa))
 
-  // Ordenadas por frecuencia de uso (las más usadas primero) para la carga rápida.
-  const entidadesPorFrecuencia = computed(() =>
-    [...entidadesActivas.value].sort(
+  function porFrecuencia(lista: Entidad[]) {
+    return [...lista].sort(
       (a, b) => (usoPorEntidad.value[b.id] ?? 0) - (usoPorEntidad.value[a.id] ?? 0)
     )
-  )
+  }
+
+  // Ordenadas por frecuencia de uso (las más usadas primero) para la carga rápida.
+  const entidadesPorFrecuencia = computed(() => porFrecuencia(entidadesActivas.value))
+
+  // Todas (activas e inactivas), también por frecuencia, para el ABM de
+  // entidades: ayuda a detectar cuáles conviene desactivar.
+  const entidadesTodasPorFrecuencia = computed(() => porFrecuencia(entidades.value))
 
   async function crearEntidad(nombre: string) {
     const nombreLimpio = nombre.trim()
@@ -69,6 +76,8 @@ export function useEntidades() {
     entidades,
     entidadesActivas,
     entidadesPorFrecuencia,
+    entidadesTodasPorFrecuencia,
+    usoPorEntidad,
     pending,
     error,
     fetchEntidades,

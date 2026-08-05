@@ -18,6 +18,15 @@ export default defineNuxtConfig({
     // Secreto para autenticar al cron de keepalive (server/api/keepalive.get.ts).
     // Se define en Vercel como variable de entorno CRON_SECRET.
     cronSecret: process.env.CRON_SECRET,
+
+    public: {
+      // Usada como último recurso por el servidor (ej. el link de las
+      // invitaciones) cuando la petición no trae cabecera Origin. En el
+      // cliente no hace falta: se usa window.location.origin directamente.
+      // IMPORTANTE: esto no reemplaza configurar "Site URL" y "Redirect URLs"
+      // en Supabase (Authentication > URL Configuration) — ver README.
+      siteUrl: process.env.NUXT_PUBLIC_SITE_URL || 'http://localhost:3000',
+    },
   },
 
   css: ['~/assets/css/main.css'],

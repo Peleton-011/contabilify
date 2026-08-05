@@ -20,11 +20,13 @@ async function cerrarSesion() {
           <NuxtLink to="/movimientos">Movimientos</NuxtLink>
           <NuxtLink v-if="isAdmin" to="/entidades">Entidades</NuxtLink>
           <NuxtLink v-if="isAdmin" to="/cuentas">Cuentas</NuxtLink>
+          <NuxtLink v-if="isAdmin" to="/usuarios">Usuarios</NuxtLink>
         </nav>
 
         <div class="spacer" />
 
         <span v-if="profile" class="badge badge-role">{{ profile.role }}</span>
+        <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name || 'Mi perfil' }}</NuxtLink>
         <button class="btn btn-ghost" @click="cerrarSesion">Salir</button>
       </div>
     </header>

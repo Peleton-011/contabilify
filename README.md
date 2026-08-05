@@ -34,12 +34,32 @@ alcanza con una migración nueva y actualizar `types/schema.ts`.
 
 - **`member`**: puede iniciar sesión y ver todo (movimientos, saldos,
   entidades, cuentas), pero no puede agregar, editar ni borrar nada.
-- **`admin`**: además puede cargar, editar y eliminar movimientos, y
-  administrar las listas de entidades y cuentas.
+- **`admin`**: además puede cargar, editar y eliminar movimientos, administrar
+  las listas de entidades y cuentas, e invitar usuarios y asignar el rol
+  `admin` desde `/usuarios`.
 
 La restricción real vive en las políticas de **Row Level Security** de
 Postgres (no solo en la interfaz), así que aunque alguien manipule la app
 desde la consola del navegador, no puede escribir datos sin ser admin.
+
+## Usuarios: alta y primer inicio de sesión
+
+- **Invitar usuarios**: un admin invita por correo desde `/usuarios`. Esto
+  llama a la Admin API de Supabase (`/api/admin/invitar`, con la service role
+  key) para enviar el email de invitación; no hace falta entrar al dashboard
+  de Supabase para cada usuario nuevo.
+- **Primer inicio de sesión**: el usuario invitado entra por el enlace del
+  correo con sesión iniciada pero sin nombre ni contraseña propia. La app lo
+  manda automáticamente a `/perfil` para completarlos antes de dejarlo usar
+  el resto de la app (lo controla `middleware/perfil-completo.global.ts`,
+  mirando si `profiles.full_name` está vacío).
+- **Editar perfil después**: `/perfil` queda disponible para cualquier
+  usuario en cualquier momento (para cambiar su nombre o su contraseña),
+  accesible desde el botón con su nombre en la barra de navegación.
+- **Asignar admins**: desde `/usuarios`, un admin puede promover o degradar
+  a cualquier otro usuario con el botón "Hacer admin" / "Quitar admin" (no
+  puede cambiarse el rol a sí mismo desde ahí, para evitar quedarse sin
+  admins por accidente).
 
 ## Carga rápida
 
@@ -61,17 +81,22 @@ que hacerlo aparte (se avisa al eliminar desde `/movimientos`).
 ## Configuración de Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
-2. En el **SQL Editor**, ejecuta el contenido de
-   `supabase/migrations/0001_init.sql`. Esto crea las tablas, la vista de
-   saldos y las políticas de RLS (y dos cuentas por defecto: "Caja" y "Banco").
+2. En el **SQL Editor**, ejecuta en orden los archivos de
+   `supabase/migrations/` (`0001_init.sql`, `0002_grants_vistas.sql`,
+   `0003_perfiles_email_y_admin.sql`). Esto crea las tablas, las vistas, las
+   políticas de RLS y dos cuentas por defecto ("Caja" y "Banco").
 3. En **Authentication > Providers**, deja habilitado el inicio de sesión por
-   email/contraseña. Se recomienda **desactivar el alta pública** (o invitar
-   a los usuarios manualmente desde el panel) ya que es una aplicación de uso interno.
-4. Invita a los usuarios de la asociación desde **Authentication > Users**.
-   Al crearse el usuario, un trigger crea automáticamente su fila en
+   email/contraseña. **Desactiva el alta pública** (Supabase suele traerla
+   activada por defecto): en este flujo los usuarios solo se crean por
+   invitación desde `/usuarios` (ver más abajo), nunca con un formulario de
+   registro abierto.
+4. Invítate a ti mismo desde **Authentication > Users > Invite user** (todavía
+   no hay ningún admin que pueda usar `/usuarios`, así que este primer usuario
+   se crea a mano). Al crearse, un trigger genera automáticamente su fila en
    `profiles` con rol `member`.
-5. Para convertirte en `admin` (necesario para poder cargar datos), ejecuta en
-   el SQL Editor lo siguiente, sustituyendo tu correo electrónico:
+5. Para convertirte en `admin` (necesario para poder cargar datos e invitar al
+   resto), ejecuta en el SQL Editor lo siguiente, sustituyendo tu correo
+   electrónico:
 
    ```sql
    update public.profiles
@@ -79,8 +104,42 @@ que hacerlo aparte (se avisa al eliminar desde `/movimientos`).
    where id = (select id from auth.users where email = 'tu-correo@ejemplo.com');
    ```
 
-6. Copia `.env.example` a `.env` y completa `SUPABASE_URL` y `SUPABASE_KEY`
-   con los datos de **Project Settings > API**.
+   De ahí en adelante, para agregar más admins ya no hace falta el SQL Editor:
+   se hace desde `/usuarios` en la propia app.
+6. Copia `.env.example` a `.env` y completa `SUPABASE_URL`, `SUPABASE_KEY` y
+   `SUPABASE_SERVICE_KEY` con los datos de **Project Settings > API** (la
+   service role key ahora hace falta también para invitar usuarios desde
+   `/usuarios`, no solo para `/api/keepalive`).
+7. En **Authentication > URL Configuration**, configura el **Site URL** y los
+   **Redirect URLs** — ver la sección siguiente, es la causa más común de que
+   los enlaces de los correos terminen apuntando a `localhost`.
+
+## Arreglar los enlaces de correo que van a localhost
+
+Si los enlaces de invitación o de recuperación de contraseña te llevan a
+`http://localhost:3000` en vez de a tu app desplegada, el problema **no está
+en el código**: está en la configuración del proyecto de Supabase.
+
+Todo proyecto nuevo trae por defecto **Site URL = `http://localhost:3000`**.
+Supabase usa ese valor como destino de los enlaces de los correos de
+autenticación, y además **solo acepta un `redirectTo` explícito (el que la
+app ya pasa en el código) si esa URL está en la lista de "Redirect URLs"
+permitidas** — si no está, ignora el `redirectTo` y cae de nuevo en el Site
+URL por defecto. Esto es exactamente lo que causa el síntoma.
+
+Para arreglarlo, en el dashboard de Supabase, **Authentication > URL
+Configuration**:
+
+1. Cambia **Site URL** a la URL real de tu app desplegada (ej.
+   `https://contabilify.vercel.app`).
+2. En **Redirect URLs**, agrega esa misma URL. Si despliegas previews de
+   Vercel por rama/PR, agrega también un wildcard como
+   `https://*.vercel.app/**`. Si sigues probando en local, deja también
+   `http://localhost:3000/**` en la lista.
+
+Una vez actualizado, las invitaciones (`/usuarios`) y los enlaces de
+recuperación de contraseña (el "¿Olvidaste tu contraseña?" del login) van a
+apuntar al lugar correcto.
 
 ## Mantener activo el proyecto de Supabase (deploy en Vercel)
 
@@ -127,21 +186,33 @@ components/
   DateStepper.vue      # input de fecha aaaa-mm-dd con flechas +1/-1 día
   BalanceCard.vue      # tarjeta de saldo, seleccionable para elegir la cuenta activa
 composables/
-  useProfile.ts         # perfil y rol del usuario actual
+  useProfile.ts         # perfil, rol y estado "perfil completo" del usuario actual
+  useUsuarios.ts        # listado de usuarios + cambio de rol (para /usuarios)
   useCuentas.ts
   useEntidades.ts
   useMovimientos.ts    # incluye crearTransferencia (par de movimientos vinculados)
   useSaldos.ts          # saldo actual por cuenta (vista `saldos_cuentas`)
   useUltimaFecha.ts      # recuerda la última fecha usada en la carga rápida
   useCuentaActiva.ts     # cuenta activa para la carga rápida (elegida desde el dashboard)
+middleware/
+  admin.ts                     # protege páginas de administración
+  perfil-completo.global.ts    # fuerza a completar /perfil antes de usar el resto de la app
 pages/
-  login.vue
+  login.vue              # incluye "¿Olvidaste tu contraseña?"
+  actualizar-password.vue # destino del enlace de recuperación de contraseña
+  perfil.vue              # completar/editar nombre y contraseña propios
   index.vue              # dashboard: saldos + carga rápida + últimos movimientos
   movimientos/index.vue   # tabla completa con filtros y edición (admin)
   entidades/index.vue     # ABM de entidades (admin)
   cuentas/index.vue       # ABM de cuentas (admin)
+  usuarios/index.vue      # invitar usuarios y asignar rol admin (admin)
+server/api/
+  keepalive.get.ts        # cron para mantener activo el proyecto de Supabase
+  admin/invitar.post.ts   # invita usuarios con la Admin API (requiere ser admin)
 supabase/migrations/
-  0001_init.sql          # esquema completo + RLS
+  0001_init.sql                     # esquema completo + RLS
+  0002_grants_vistas.sql            # permisos explícitos sobre las vistas
+  0003_perfiles_email_y_admin.sql   # columna profiles.email + triggers de sincronización
 types/
   schema.ts              # tipos de dominio
   database.ts            # tipado del cliente de Supabase

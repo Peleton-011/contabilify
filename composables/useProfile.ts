@@ -30,8 +30,19 @@ export function useProfile() {
     { immediate: true }
   )
 
+  async function actualizarNombre(fullName: string) {
+    if (!user.value) throw new Error('No hay sesión activa')
+    const { error } = await supabase
+      .from('profiles')
+      .update({ full_name: fullName.trim() })
+      .eq('id', user.value.id)
+    if (error) throw error
+    await fetchProfile()
+  }
+
   const isAdmin = computed(() => profile.value?.role === 'admin')
   const isMember = computed(() => !!profile.value)
+  const perfilCompleto = computed(() => !!profile.value?.full_name)
 
-  return { profile, isAdmin, isMember, pending, fetchProfile }
+  return { profile, isAdmin, isMember, perfilCompleto, pending, fetchProfile, actualizarNombre }
 }
