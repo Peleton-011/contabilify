@@ -21,7 +21,7 @@ async function cerrarSesion() {
         <div class="spacer" />
 
         <span v-if="profile" class="badge badge-role">{{ profile.role }}</span>
-        <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name || 'Mi perfil' }}</NuxtLink>
+        <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name?.split(' ')[0] || 'Mi perfil' }}</NuxtLink>
         <button class="btn btn-ghost" @click="cerrarSesion">Salir</button>
       </div>
 
