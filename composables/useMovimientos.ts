@@ -52,6 +52,60 @@ export function useMovimientos() {
     return data as unknown as MovimientoConRelaciones
   }
 
+  /**
+   * Registra una transferencia entre dos cuentas propias como un par de
+   * movimientos vinculados (un egreso en origen + un ingreso en destino,
+   * mismo monto y fecha), enlazados por `metadata.transferencia_id`. No hace
+   * falta ninguna columna nueva: es exactamente el uso que se pensó para la
+   * columna `metadata` jsonb.
+   */
+  async function crearTransferencia(input: {
+    fecha: string
+    monto: number
+    concepto: string
+    cuentaOrigenId: string
+    cuentaDestinoId: string
+    createdBy: string | null
+  }) {
+    const transferenciaId = crypto.randomUUID()
+    const base = {
+      fecha: input.fecha,
+      monto: input.monto,
+      concepto: input.concepto,
+      entidad_id: null,
+      notas: null,
+      created_by: input.createdBy,
+    }
+
+    const filas: NuevoMovimiento[] = [
+      {
+        ...base,
+        tipo: 'egreso',
+        cuenta_id: input.cuentaOrigenId,
+        metadata: {
+          transferencia_id: transferenciaId,
+          cuenta_contraparte_id: input.cuentaDestinoId,
+        },
+      },
+      {
+        ...base,
+        tipo: 'ingreso',
+        cuenta_id: input.cuentaDestinoId,
+        metadata: {
+          transferencia_id: transferenciaId,
+          cuenta_contraparte_id: input.cuentaOrigenId,
+        },
+      },
+    ]
+
+    const { data, error: err } = await supabase
+      .from('movimientos')
+      .insert(filas)
+      .select(SELECT_CON_RELACIONES)
+    if (err) throw err
+    return data as unknown as MovimientoConRelaciones[]
+  }
+
   async function actualizarMovimiento(id: string, changes: Partial<NuevoMovimiento>) {
     const { error: err } = await supabase.from('movimientos').update(changes).eq('id', id)
     if (err) throw err
@@ -68,6 +122,7 @@ export function useMovimientos() {
     error,
     fetchMovimientos,
     crearMovimiento,
+    crearTransferencia,
     actualizarMovimiento,
     eliminarMovimiento,
   }

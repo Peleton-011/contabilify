@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import type { Entidad, TipoMovimiento } from '~/types/schema'
+import type { Cuenta, Entidad, TipoMovimiento } from '~/types/schema'
+// Import explícito: en algunos entornos de desarrollo el auto-import de
+// Nuxt no recoge funciones nuevas de utils/ sin reiniciar el dev server.
 import { formatoMonto, parseMonto } from '~/utils/moneda'
 
 const emit = defineEmits<{
   guardado: []
 }>()
 
-type Paso = 'tipo' | 'monto' | 'entidad' | 'concepto' | 'cuenta' | 'fecha'
-const PASOS: Paso[] = ['tipo', 'monto', 'entidad', 'concepto', 'cuenta', 'fecha']
+type Paso = 'tipo' | 'monto' | 'entidad' | 'concepto' | 'fecha'
+const PASOS: Paso[] = ['tipo', 'monto', 'entidad', 'concepto', 'fecha']
 
 const { cuentas, fetchCuentas } = useCuentas()
 const { entidadesPorFrecuencia, fetchEntidades } = useEntidades()
-const { crearMovimiento } = useMovimientos()
+const { crearMovimiento, crearTransferencia } = useMovimientos()
 const { ultimaFecha, actualizar: actualizarUltimaFecha, cargarDesdeStorage } = useUltimaFecha()
+const { cuentaActivaId } = useCuentaActiva()
 const user = useSupabaseUser()
 
 await Promise.all([fetchCuentas(), fetchEntidades()])
@@ -25,9 +28,9 @@ const tipo = ref<TipoMovimiento | null>(null)
 const montoTexto = ref('')
 const entidadId = ref<string | null>(null)
 const entidadNombre = ref('')
+const cuentaContraparteId = ref<string | null>(null)
 const concepto = ref('')
 const conceptoTocado = ref(false)
-const cuentaId = ref<string | null>(null)
 const fecha = ref(ultimaFecha.value)
 
 const guardando = ref(false)
@@ -45,15 +48,14 @@ const montoNumero = computed(() => {
 
 const montoValido = computed(() => montoNumero.value > 0)
 
-watch(cuentaId, () => {}, { flush: 'post' })
+const cuentaActivaNombre = computed(
+  () => cuentas.value.find((c) => c.id === cuentaActivaId.value)?.nombre ?? '—'
+)
 
-// Preselecciona la única cuenta activa, si hay una sola
-watch(
-  cuentas,
-  (lista) => {
-    if (lista.length === 1 && !cuentaId.value) cuentaId.value = lista[0].id
-  },
-  { immediate: true }
+// Otras cuentas disponibles para registrar una transferencia entre cuentas
+// propias, en lugar de una entidad externa.
+const otrasCuentas = computed(() =>
+  cuentas.value.filter((c) => c.id !== cuentaActivaId.value)
 )
 
 function irA(paso: Paso) {
@@ -80,8 +82,19 @@ function confirmarMonto() {
 }
 
 function alSeleccionarEntidad(entidad: Entidad | null) {
+  cuentaContraparteId.value = null
   entidadNombre.value = entidad?.nombre ?? ''
   if (!conceptoTocado.value) concepto.value = entidad?.nombre ?? ''
+}
+
+function elegirTransferencia(otra: Cuenta) {
+  cuentaContraparteId.value = otra.id
+  entidadId.value = null
+  entidadNombre.value = ''
+  if (!conceptoTocado.value) {
+    concepto.value =
+      tipo.value === 'egreso' ? `Transferencia a ${otra.nombre}` : `Transferencia desde ${otra.nombre}`
+  }
 }
 
 function continuarDesdeEntidad() {
@@ -93,27 +106,33 @@ function confirmarConcepto() {
     error.value = 'Ingresa un concepto para el movimiento'
     return
   }
-  irA('cuenta')
-}
-
-function elegirCuenta(id: string) {
-  cuentaId.value = id
   irA('fecha')
 }
 
 const resumen = computed(() => {
-  const cuenta = cuentas.value.find((c) => c.id === cuentaId.value)
-  return {
+  const base = {
     tipoLabel: tipo.value === 'ingreso' ? 'Ingreso' : 'Egreso',
     monto: Number.isFinite(montoNumero.value) ? formatoMonto(montoNumero.value) : '—',
-    entidad: entidadNombre.value || 'Sin entidad',
     concepto: concepto.value || '—',
-    cuenta: cuenta?.nombre ?? '—',
+  }
+
+  if (cuentaContraparteId.value) {
+    const contraparte = cuentas.value.find((c) => c.id === cuentaContraparteId.value)
+    const origen = tipo.value === 'egreso' ? cuentaActivaNombre.value : contraparte?.nombre ?? '—'
+    const destino = tipo.value === 'egreso' ? contraparte?.nombre ?? '—' : cuentaActivaNombre.value
+    return { ...base, esTransferencia: true as const, origen, destino }
+  }
+
+  return {
+    ...base,
+    esTransferencia: false as const,
+    entidad: entidadNombre.value || 'Sin entidad',
+    cuenta: cuentaActivaNombre.value,
   }
 })
 
 async function guardar() {
-  if (!tipo.value || !cuentaId.value || !montoValido.value || !concepto.value.trim()) {
+  if (!tipo.value || !cuentaActivaId.value || !montoValido.value || !concepto.value.trim()) {
     error.value = 'Faltan datos por completar'
     return
   }
@@ -126,22 +145,38 @@ async function guardar() {
   guardando.value = true
   error.value = null
   try {
-    await crearMovimiento({
-      fecha: fechaNormalizada,
-      tipo: tipo.value,
-      monto: montoNumero.value,
-      concepto: concepto.value.trim(),
-      entidad_id: entidadId.value,
-      cuenta_id: cuentaId.value,
-      notas: null,
-      metadata: {},
-      created_by: user.value?.id ?? null,
-    })
+    if (cuentaContraparteId.value) {
+      const cuentaOrigenId = tipo.value === 'egreso' ? cuentaActivaId.value : cuentaContraparteId.value
+      const cuentaDestinoId = tipo.value === 'egreso' ? cuentaContraparteId.value : cuentaActivaId.value
+      await crearTransferencia({
+        fecha: fechaNormalizada,
+        monto: montoNumero.value,
+        concepto: concepto.value.trim(),
+        cuentaOrigenId,
+        cuentaDestinoId,
+        createdBy: user.value?.id ?? null,
+      })
+    } else {
+      await crearMovimiento({
+        fecha: fechaNormalizada,
+        tipo: tipo.value,
+        monto: montoNumero.value,
+        concepto: concepto.value.trim(),
+        entidad_id: entidadId.value,
+        cuenta_id: cuentaActivaId.value,
+        notas: null,
+        metadata: {},
+        created_by: user.value?.id ?? null,
+      })
+    }
 
     actualizarUltimaFecha(fechaNormalizada)
     guardadoOk.value = true
     emit('guardado')
-    reiniciar({ mantenerCuenta: true })
+    reiniciar()
+    // Refresca los conteos de uso para que el próximo movimiento de esta
+    // misma sesión ya vea reflejada la frecuencia recién actualizada.
+    fetchEntidades()
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'No se pudo guardar el movimiento'
   } finally {
@@ -149,14 +184,14 @@ async function guardar() {
   }
 }
 
-function reiniciar(opciones: { mantenerCuenta?: boolean } = {}) {
+function reiniciar() {
   tipo.value = null
   montoTexto.value = ''
   entidadId.value = null
   entidadNombre.value = ''
+  cuentaContraparteId.value = null
   concepto.value = ''
   conceptoTocado.value = false
-  if (!opciones.mantenerCuenta) cuentaId.value = null
   fecha.value = ultimaFecha.value
   pasoActual.value = 'tipo'
 }
@@ -177,7 +212,11 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
 </script>
 
 <template>
-  <div class="quick-entry card">
+  <div v-if="!cuentaActivaId" class="quick-entry card">
+    <p class="text-muted">Selecciona una cuenta arriba para empezar a cargar movimientos.</p>
+  </div>
+
+  <div v-else class="quick-entry card">
     <div class="qe-header">
       <div class="qe-progress">
         <span
@@ -201,6 +240,7 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
       <!-- Paso 1: tipo -->
       <div v-if="pasoActual === 'tipo'" key="tipo" class="qe-step">
         <h2>¿Ingreso o egreso?</h2>
+        <p class="text-muted qe-cuenta-activa">Cuenta activa: <strong>{{ cuentaActivaNombre }}</strong></p>
         <div class="qe-choice-grid">
           <button type="button" class="btn btn-lg choice-ingreso" @click="elegirTipo('ingreso')">
             Ingreso
@@ -237,6 +277,23 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
           :entidades="entidadesPorFrecuencia"
           @seleccionada="alSeleccionarEntidad"
         />
+
+        <div v-if="otrasCuentas.length" class="qe-transfer-block">
+          <p class="text-muted qe-transfer-label">O registra un movimiento entre cuentas:</p>
+          <div class="qe-transfer-chips">
+            <button
+              v-for="otra in otrasCuentas"
+              :key="otra.id"
+              type="button"
+              class="btn qe-transfer-chip"
+              :class="{ activo: cuentaContraparteId === otra.id }"
+              @click="elegirTransferencia(otra)"
+            >
+              ↔ {{ tipo === 'egreso' ? `Transferir a ${otra.nombre}` : `Transferir desde ${otra.nombre}` }}
+            </button>
+          </div>
+        </div>
+
         <button type="button" class="btn btn-primary btn-block btn-lg" @click="continuarDesdeEntidad">
           Continuar
         </button>
@@ -258,34 +315,24 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
         </button>
       </div>
 
-      <!-- Paso 5: cuenta -->
-      <div v-else-if="pasoActual === 'cuenta'" key="cuenta" class="qe-step">
-        <h2>¿Caja o banco?</h2>
-        <div class="qe-choice-grid">
-          <button
-            v-for="cuenta in cuentas"
-            :key="cuenta.id"
-            type="button"
-            class="btn btn-lg qe-cuenta-btn"
-            :class="{ activo: cuentaId === cuenta.id }"
-            @click="elegirCuenta(cuenta.id)"
-          >
-            {{ cuenta.nombre }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Paso 6: fecha + confirmación -->
+      <!-- Paso 5: fecha + confirmación -->
       <div v-else key="fecha" class="qe-step">
         <h2>Fecha</h2>
         <DateStepper v-model="fecha" />
 
         <div class="qe-summary">
-          <div class="row"><span class="text-muted">Tipo</span><span class="spacer" /><span :class="tipo === 'ingreso' ? 'text-ingreso' : 'text-egreso'">{{ resumen.tipoLabel }}</span></div>
           <div class="row"><span class="text-muted">Monto</span><span class="spacer" /><strong>{{ resumen.monto }}</strong></div>
-          <div class="row"><span class="text-muted">Entidad</span><span class="spacer" /><span>{{ resumen.entidad }}</span></div>
           <div class="row"><span class="text-muted">Concepto</span><span class="spacer" /><span>{{ resumen.concepto }}</span></div>
-          <div class="row"><span class="text-muted">Cuenta</span><span class="spacer" /><span>{{ resumen.cuenta }}</span></div>
+
+          <template v-if="resumen.esTransferencia">
+            <div class="row"><span class="text-muted">De</span><span class="spacer" /><span>{{ resumen.origen }}</span></div>
+            <div class="row"><span class="text-muted">A</span><span class="spacer" /><span>{{ resumen.destino }}</span></div>
+          </template>
+          <template v-else>
+            <div class="row"><span class="text-muted">Tipo</span><span class="spacer" /><span :class="tipo === 'ingreso' ? 'text-ingreso' : 'text-egreso'">{{ resumen.tipoLabel }}</span></div>
+            <div class="row"><span class="text-muted">Entidad</span><span class="spacer" /><span>{{ resumen.entidad }}</span></div>
+            <div class="row"><span class="text-muted">Cuenta</span><span class="spacer" /><span>{{ resumen.cuenta }}</span></div>
+          </template>
         </div>
 
         <button type="button" class="btn btn-primary btn-block btn-lg" :disabled="guardando" @click="guardar">
@@ -346,6 +393,12 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
   gap: 1rem;
 }
 
+.qe-cuenta-activa {
+  margin-top: -0.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+
 .qe-choice-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -364,17 +417,39 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
   border-color: var(--color-egreso);
 }
 
-.qe-cuenta-btn.activo {
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-  border-color: var(--color-primary);
-}
-
 .qe-monto-input {
   text-align: center;
+  font-family: var(--font-body);
   font-size: 1.6rem;
   font-weight: 700;
   padding: 0.5em;
+}
+
+.qe-transfer-block {
+  border-top: 1px dashed var(--color-border);
+  padding-top: 0.85rem;
+}
+
+.qe-transfer-label {
+  font-size: 0.82rem;
+  margin-bottom: 0.5rem;
+}
+
+.qe-transfer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.qe-transfer-chip {
+  font-size: 0.85rem;
+  padding: 0.5em 0.9em;
+}
+
+.qe-transfer-chip.activo {
+  background: var(--color-primary);
+  color: var(--color-primary-contrast);
+  border-color: var(--color-primary);
 }
 
 .qe-summary {

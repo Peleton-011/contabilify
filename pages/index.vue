@@ -2,8 +2,16 @@
 const { isAdmin } = useProfile()
 const { saldos, saldoTotal, fetchSaldos } = useSaldos()
 const { movimientos, fetchMovimientos } = useMovimientos()
+const { cuentaActivaId, seleccionar: seleccionarCuenta, cargarDesdeStorage } = useCuentaActiva()
 
 await Promise.all([fetchSaldos(), fetchMovimientos({}, 6)])
+cargarDesdeStorage()
+
+// Si todavía no hay cuenta activa (o quedó de una cuenta que ya no existe),
+// se preselecciona la primera para no dejar la carga rápida sin cuenta.
+if (saldos.value.length && !saldos.value.some((s) => s.cuenta_id === cuentaActivaId.value)) {
+  seleccionarCuenta(saldos.value[0].cuenta_id)
+}
 
 async function refrescar() {
   await Promise.all([fetchSaldos(), fetchMovimientos({}, 6)])
@@ -18,9 +26,15 @@ async function refrescar() {
         :key="s.cuenta_id"
         :nombre="s.nombre"
         :saldo="s.saldo_actual"
+        :seleccionable="isAdmin"
+        :seleccionada="s.cuenta_id === cuentaActivaId"
+        @click="seleccionarCuenta(s.cuenta_id)"
       />
       <BalanceCard nombre="Total" :saldo="saldoTotal" destacado />
     </section>
+    <p v-if="isAdmin" class="text-muted hint-cuenta-activa">
+      La carga rápida registra movimientos en la cuenta activa (resaltada arriba). Toca otra tarjeta para cambiarla.
+    </p>
 
     <QuickEntry v-if="isAdmin" @guardado="refrescar" />
     <p v-else class="card text-muted">
@@ -43,6 +57,7 @@ async function refrescar() {
             {{ m.tipo }}
           </span>
           <span class="ultimo-concepto">{{ m.concepto }}</span>
+          <span v-if="m.metadata?.transferencia_id" class="badge badge-transferencia">transferencia</span>
           <span class="text-muted ultimo-entidad">{{ m.entidad?.nombre ?? '' }}</span>
           <span class="spacer" />
           <span class="text-muted">{{ m.cuenta.nombre }}</span>
@@ -74,7 +89,7 @@ async function refrescar() {
   flex-wrap: wrap;
   font-size: 0.9rem;
   padding-bottom: 0.6rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px dotted var(--color-border);
 }
 
 .ultimo-item:last-child {
@@ -87,6 +102,11 @@ async function refrescar() {
 }
 
 .ultimo-entidad {
+  font-size: 0.85rem;
+}
+
+.hint-cuenta-activa {
+  margin: -0.5rem 0 0;
   font-size: 0.85rem;
 }
 </style>

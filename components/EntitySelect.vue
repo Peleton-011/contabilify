@@ -23,6 +23,12 @@ const seleccionActual = computed(
   () => props.entidades.find((e) => e.id === props.modelValue) ?? null
 )
 
+// Si se escribe después de cerrar el desplegable (ej. tras "Sin entidad",
+// que no reenfoca el input), lo reabrimos para mostrar coincidencias.
+watch(busqueda, (valor) => {
+  if (valor) abierto.value = true
+})
+
 const coincidencias = computed(() => {
   const texto = busqueda.value.trim().toLowerCase()
   if (!texto) return props.entidades.slice(0, 8)
@@ -61,7 +67,17 @@ function quitarSeleccion() {
   emit('update:modelValue', null)
   emit('seleccionada', null)
   busqueda.value = ''
+  // Reenfoca el buscador porque el objetivo de "Cambiar" es volver a buscar.
   inputRef.value?.focus()
+}
+
+function elegirSinEntidad() {
+  // A diferencia de "Cambiar", acá el objetivo es cerrar el paso sin buscar
+  // nada más, así que no reenfocamos el input (eso reabriría el desplegable).
+  abierto.value = false
+  busqueda.value = ''
+  emit('update:modelValue', null)
+  emit('seleccionada', null)
 }
 
 async function crearNueva() {
@@ -123,7 +139,7 @@ defineExpose({ focus: () => inputRef.value?.focus() })
         v-if="!busqueda"
         type="button"
         class="btn btn-ghost btn-skip"
-        @mousedown.prevent="quitarSeleccion"
+        @mousedown.prevent="elegirSinEntidad"
       >
         Sin entidad / continuar sin elegir
       </button>
@@ -143,11 +159,12 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 }
 
 .pill {
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-  border-radius: 999px;
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
   padding: 0.5em 1em;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .combo {
@@ -174,7 +191,12 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 .dropdown-item {
   padding: 0.6em 0.7em;
   border-radius: var(--radius-sm);
+  border-bottom: 1px dotted var(--color-border);
   cursor: pointer;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
 }
 
 .dropdown-item:hover {

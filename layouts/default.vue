@@ -12,21 +12,26 @@ async function cerrarSesion() {
 <template>
   <div class="app-shell">
     <header class="app-header">
-      <div class="container row">
-        <NuxtLink to="/" class="brand">Contabilify</NuxtLink>
-
-        <nav class="row nav-links">
-          <NuxtLink to="/">Carga rápida</NuxtLink>
-          <NuxtLink to="/movimientos">Movimientos</NuxtLink>
-          <NuxtLink v-if="isAdmin" to="/entidades">Entidades</NuxtLink>
-          <NuxtLink v-if="isAdmin" to="/cuentas">Cuentas</NuxtLink>
-        </nav>
+      <div class="container row masthead">
+        <div class="masthead-title">
+          <NuxtLink to="/" class="brand">Contabilify</NuxtLink>
+          <span class="brand-sub">· Treasury Office</span>
+        </div>
 
         <div class="spacer" />
 
         <span v-if="profile" class="badge badge-role">{{ profile.role }}</span>
+        <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name || 'Mi perfil' }}</NuxtLink>
         <button class="btn btn-ghost" @click="cerrarSesion">Salir</button>
       </div>
+
+      <nav class="container row nav-links">
+        <NuxtLink to="/">Carga rápida</NuxtLink>
+        <NuxtLink to="/movimientos">Movimientos</NuxtLink>
+        <NuxtLink v-if="isAdmin" to="/entidades">Entidades</NuxtLink>
+        <NuxtLink v-if="isAdmin" to="/cuentas">Cuentas</NuxtLink>
+        <NuxtLink v-if="isAdmin" to="/usuarios">Usuarios</NuxtLink>
+      </nav>
     </header>
 
     <main class="container">
@@ -37,52 +42,70 @@ async function cerrarSesion() {
 
 <style scoped>
 .app-header {
-  border-bottom: 1px solid var(--color-border);
   background: var(--color-surface);
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.app-header .container {
-  padding-top: 0.85rem;
-  padding-bottom: 0.85rem;
+.masthead {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 4px double var(--color-text);
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+.masthead-title {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
 }
 
 .brand {
+  font-family: var(--font-heading);
   font-weight: 800;
-  font-size: 1.1rem;
-  color: var(--color-primary);
+  font-size: 2rem;
+  color: var(--color-text);
   text-decoration: none;
+  letter-spacing: 0.3px;
+}
+
+.brand-sub {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
 }
 
 .nav-links {
-  margin-left: 1.5rem;
-  gap: 1.1rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+  gap: 1.3rem;
+  flex-wrap: wrap;
 }
 
 .nav-links a {
   color: var(--color-text-muted);
   text-decoration: none;
-  font-weight: 600;
-  font-size: 0.92rem;
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 3px solid transparent;
+  padding-bottom: 0.4em;
 }
 
 .nav-links a.router-link-exact-active {
-  color: var(--color-primary);
+  color: var(--color-text);
+  border-bottom: 3px solid var(--color-primary);
 }
 
 @media (max-width: 640px) {
-  .app-header .container {
-    flex-wrap: wrap;
-  }
-
   .nav-links {
-    order: 3;
-    margin-left: 0;
-    width: 100%;
     gap: 1rem;
-    padding-top: 0.5rem;
   }
 }
 </style>

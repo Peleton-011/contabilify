@@ -104,7 +104,10 @@ async function guardarEdicion(id: string) {
 }
 
 async function borrar(m: MovimientoConRelaciones) {
-  if (!confirm(`¿Eliminar el movimiento "${m.concepto}" por ${formatoMonto(m.monto)}?`)) return
+  const avisoTransferencia = m.metadata?.transferencia_id
+    ? ' Es una transferencia entre cuentas: la otra mitad no se borra automáticamente, tendrás que eliminarla aparte.'
+    : ''
+  if (!confirm(`¿Eliminar el movimiento "${m.concepto}" por ${formatoMonto(m.monto)}?${avisoTransferencia}`)) return
   await eliminarMovimiento(m.id)
   await aplicarFiltros()
 }
@@ -187,7 +190,10 @@ async function borrar(m: MovimientoConRelaciones) {
                   {{ m.tipo }}
                 </span>
               </td>
-              <td>{{ m.concepto }}</td>
+              <td>
+                {{ m.concepto }}
+                <span v-if="m.metadata?.transferencia_id" class="badge badge-transferencia">transferencia</span>
+              </td>
               <td>{{ m.entidad?.nombre ?? '—' }}</td>
               <td>{{ m.cuenta.nombre }}</td>
               <td :class="m.tipo === 'ingreso' ? 'text-ingreso' : 'text-egreso'">
@@ -254,6 +260,6 @@ async function borrar(m: MovimientoConRelaciones) {
 }
 
 .fila-edicion td {
-  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 6%, transparent);
 }
 </style>

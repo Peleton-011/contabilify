@@ -110,6 +110,7 @@ function alPresionarTecla(evento: KeyboardEvent) {
 .date-legible {
   text-align: center;
   font-size: 0.78rem;
+  letter-spacing: 0.04em;
   text-transform: capitalize;
 }
 </style>
