@@ -15,7 +15,7 @@ async function cerrarSesion() {
       <div class="container row masthead">
         <div class="masthead-title">
           <NuxtLink to="/" class="brand">Contabilify</NuxtLink>
-          <span class="brand-sub">· Treasury Office</span>
+          <span class="brand-sub">· El Chirin</span>
         </div>
 
         <div class="spacer" />
