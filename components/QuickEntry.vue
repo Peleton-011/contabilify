@@ -193,6 +193,7 @@ async function guardar() {
 				entidad_id: entidadId.value,
 				cuenta_id: cuentaActivaId.value,
 				notas: null,
+				numero_factura: null,
 				metadata: {},
 				created_by: user.value?.id ?? null,
 			});

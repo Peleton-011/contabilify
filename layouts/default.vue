@@ -31,6 +31,7 @@ async function cerrarSesion() {
         <NuxtLink v-if="isAdmin" to="/entidades">Entidades</NuxtLink>
         <NuxtLink v-if="isAdmin" to="/cuentas">Cuentas</NuxtLink>
         <NuxtLink v-if="isAdmin" to="/usuarios">Usuarios</NuxtLink>
+        <NuxtLink v-if="isAdmin" to="/exportar">Exportar</NuxtLink>
       </nav>
     </header>
 

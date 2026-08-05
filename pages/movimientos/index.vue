@@ -45,6 +45,7 @@ const edicion = reactive({
   tipo: 'ingreso' as 'ingreso' | 'egreso',
   montoTexto: '',
   concepto: '',
+  numeroFactura: '',
   entidad_id: '' as string | '',
   cuenta_id: '',
 })
@@ -57,6 +58,7 @@ function empezarEdicion(m: MovimientoConRelaciones) {
   edicion.tipo = m.tipo
   edicion.montoTexto = String(m.monto)
   edicion.concepto = m.concepto
+  edicion.numeroFactura = m.numero_factura ?? ''
   edicion.entidad_id = m.entidad_id ?? ''
   edicion.cuenta_id = m.cuenta_id
   errorEdicion.value = null
@@ -91,6 +93,7 @@ async function guardarEdicion(id: string) {
       tipo: edicion.tipo,
       monto,
       concepto: edicion.concepto.trim(),
+      numero_factura: edicion.numeroFactura.trim() || null,
       entidad_id: edicion.entidad_id || null,
       cuenta_id: edicion.cuenta_id,
     })
@@ -168,6 +171,7 @@ async function borrar(m: MovimientoConRelaciones) {
             <th>Fecha</th>
             <th>Tipo</th>
             <th>Concepto</th>
+            <th>Nº factura</th>
             <th>Entidad</th>
             <th>Cuenta</th>
             <th>Monto</th>
@@ -176,10 +180,10 @@ async function borrar(m: MovimientoConRelaciones) {
         </thead>
         <tbody>
           <tr v-if="pending">
-            <td colspan="7" class="text-muted">Cargando…</td>
+            <td colspan="8" class="text-muted">Cargando…</td>
           </tr>
           <tr v-else-if="!movimientos.length">
-            <td colspan="7" class="text-muted">No hay movimientos con estos filtros.</td>
+            <td colspan="8" class="text-muted">No hay movimientos con estos filtros.</td>
           </tr>
 
           <template v-for="m in movimientos" :key="m.id">
@@ -194,6 +198,7 @@ async function borrar(m: MovimientoConRelaciones) {
                 {{ m.concepto }}
                 <span v-if="m.metadata?.transferencia_id" class="badge badge-transferencia">transferencia</span>
               </td>
+              <td>{{ m.numero_factura ?? '—' }}</td>
               <td>{{ m.entidad?.nombre ?? '—' }}</td>
               <td>{{ m.cuenta.nombre }}</td>
               <td :class="m.tipo === 'ingreso' ? 'text-ingreso' : 'text-egreso'">
@@ -214,6 +219,7 @@ async function borrar(m: MovimientoConRelaciones) {
                 </select>
               </td>
               <td><input v-model="edicion.concepto" type="text" class="input"></td>
+              <td><input v-model="edicion.numeroFactura" type="text" class="input"></td>
               <td>
                 <select v-model="edicion.entidad_id" class="input">
                   <option value="">Sin entidad</option>
