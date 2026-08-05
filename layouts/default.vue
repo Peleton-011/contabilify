@@ -54,6 +54,12 @@ async function cerrarSesion() {
   border-bottom: 4px double var(--color-text);
   align-items: baseline;
   flex-wrap: wrap;
+  gap: 0;
+}
+
+.masthead > * {
+    padding: 0.2em 0.65em;
+
 }
 
 .masthead-title {
