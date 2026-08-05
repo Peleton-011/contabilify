@@ -78,6 +78,42 @@ necesidad de ninguna columna nueva. Al eliminar o editar un movimiento que
 forma parte de una transferencia, la otra mitad no se actualiza sola; hay
 que hacerlo aparte (se avisa al eliminar desde `/movimientos`).
 
+## Exportar y sincronizar con Excel
+
+`/exportar` (solo admin) tiene dos herramientas pensadas para convivir con la
+planilla histórica en la que se llevaban las cuentas antes de esta app:
+
+- **Exportar**: descarga un año completo o un rango de fechas como una hoja
+  con el mismo formato de "año contable" de la planilla original (columnas
+  Egresos/Ingresos/Saldo por cuenta, más un bloque "Conjunto" con el total),
+  pero con fórmulas de saldo simples y consistentes en vez de las fórmulas
+  de matriz y los `#REF!` que había en los años más recientes del archivo
+  original.
+- **Sincronizar**: subes tu copia de la planilla y la app te devuelve una
+  copia actualizada, sin escribir nada en la base de datos. Busca, por cada
+  hoja de 4 dígitos (2021, 2022, ...), qué movimientos ya están representados
+  ahí (por fecha + cuenta + tipo + monto), y agrega los que falten en la
+  pestaña del año que corresponda — creando la pestaña si ese año todavía no
+  existe. Las transferencias entre cuentas propias se combinan en una sola
+  fila (egreso en la cuenta de origen, ingreso en la de destino), como en el
+  resto de la app.
+
+Limitaciones conocidas y aceptadas:
+
+- Si una pestaña de año recibe movimientos nuevos, se **regenera entera**
+  con fórmulas limpias; no se editan sus celdas una por una. Esto significa
+  que cualquier cálculo manual que hubiera al costado (los recuadros de
+  "Balance Fiestas", "Dinero invertido", etc. que tenía la planilla original)
+  se pierde en esa pestaña. Las pestañas de años que ya estaban al día
+  quedan intactas.
+- La pestaña regenerada se agrega al final del libro (limitación de la
+  librería usada para escribir Excel), así que puede no volver a quedar en
+  su posición cronológica original entre el resto de las hojas.
+- La detección de columnas por cuenta en el archivo subido es por texto
+  (busca el nombre de la cuenta, p. ej. "Caja", dentro de la celda de grupo,
+  p. ej. "Caja, Efectivo") y se detiene en el bloque "Conjunto"; cualquier
+  recuadro suelto más a la derecha (como los de eventos) se ignora.
+
 ## Configuración de Supabase
 
 1. Crea un proyecto en [supabase.com](https://supabase.com).
@@ -206,13 +242,19 @@ pages/
   entidades/index.vue     # ABM de entidades (admin)
   cuentas/index.vue       # ABM de cuentas (admin)
   usuarios/index.vue      # invitar usuarios y asignar rol admin (admin)
+  exportar/index.vue      # exportar rango como Excel / sincronizar con planilla subida (admin)
 server/api/
   keepalive.get.ts        # cron para mantener activo el proyecto de Supabase
   admin/invitar.post.ts   # invita usuarios con la Admin API (requiere ser admin)
+  exportar.get.ts          # genera el Excel de un rango de fechas
+  sincronizar.post.ts      # compara un Excel subido contra la base y devuelve una copia con lo que faltaba
+server/utils/
+  ledgerXlsx.ts            # generador/lector de hojas "año contable" (compartido por exportar y sincronizar)
 supabase/migrations/
   0001_init.sql                     # esquema completo + RLS
   0002_grants_vistas.sql            # permisos explícitos sobre las vistas
   0003_perfiles_email_y_admin.sql   # columna profiles.email + triggers de sincronización
+  0004_numero_factura.sql           # columna movimientos.numero_factura
 types/
   schema.ts              # tipos de dominio
   database.ts            # tipado del cliente de Supabase
