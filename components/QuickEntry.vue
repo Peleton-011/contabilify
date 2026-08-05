@@ -419,6 +419,7 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
 
 .qe-monto-input {
   text-align: center;
+  font-family: var(--font-body);
   font-size: 1.6rem;
   font-weight: 700;
   padding: 0.5em;

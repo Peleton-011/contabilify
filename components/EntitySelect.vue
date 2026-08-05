@@ -159,11 +159,12 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 }
 
 .pill {
-  background: var(--color-primary);
-  color: var(--color-primary-contrast);
-  border-radius: 999px;
+  background: none;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: var(--radius-sm);
   padding: 0.5em 1em;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .combo {
@@ -190,7 +191,12 @@ defineExpose({ focus: () => inputRef.value?.focus() })
 .dropdown-item {
   padding: 0.6em 0.7em;
   border-radius: var(--radius-sm);
+  border-bottom: 1px dotted var(--color-border);
   cursor: pointer;
+}
+
+.dropdown-item:last-child {
+  border-bottom: none;
 }
 
 .dropdown-item:hover {

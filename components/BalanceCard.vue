@@ -36,7 +36,8 @@ defineEmits<{
 }
 
 .balance-card.destacado {
-  border-color: var(--color-primary);
+  border-width: 2px;
+  border-color: var(--color-text);
 }
 
 .balance-card.seleccionable {
@@ -54,7 +55,7 @@ defineEmits<{
 .balance-card.seleccionada {
   border-color: var(--color-primary);
   border-width: 2px;
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+  background: color-mix(in oklch, var(--color-primary) 8%, var(--color-surface));
 }
 
 .balance-nombre {
@@ -65,6 +66,7 @@ defineEmits<{
 }
 
 .balance-monto {
+  font-family: var(--font-body);
   font-size: 1.5rem;
   font-weight: 800;
 }

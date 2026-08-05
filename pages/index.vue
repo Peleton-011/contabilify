@@ -89,7 +89,7 @@ async function refrescar() {
   flex-wrap: wrap;
   font-size: 0.9rem;
   padding-bottom: 0.6rem;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px dotted var(--color-border);
 }
 
 .ultimo-item:last-child {

@@ -260,6 +260,6 @@ async function borrar(m: MovimientoConRelaciones) {
 }
 
 .fila-edicion td {
-  background: color-mix(in srgb, var(--color-primary) 5%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 6%, transparent);
 }
 </style>

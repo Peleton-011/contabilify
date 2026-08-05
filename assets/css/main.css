@@ -1,44 +1,43 @@
+/* ==========================================================================
+   Field Journal theme — drop-in replacement for assets/css/main.css
+   Same selectors and custom properties as the original file, so no markup
+   or component changes are required anywhere else in the app.
+   ========================================================================== */
+
+/* Las fuentes se cargan como <link> en nuxt.config.ts (app.head.link) para
+   evitar el salto extra de red que implica este @import. */
+
 :root {
-  --color-bg: #f5f6f8;
-  --color-surface: #ffffff;
-  --color-border: #e1e4e9;
-  --color-text: #1c2128;
-  --color-text-muted: #61697a;
-  --color-primary: #2f6f4f;
-  --color-primary-dark: #234f39;
-  --color-primary-contrast: #ffffff;
-  --color-ingreso: #1f8a4d;
-  --color-ingreso-bg: #e7f6ec;
-  --color-egreso: #c23b3b;
-  --color-egreso-bg: #fbeaea;
-  --color-focus: #2f6f4f;
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
-  --shadow-md: 0 4px 12px rgba(16, 24, 40, 0.08);
+  --color-bg: oklch(0.93 0.02 70);
+  --color-surface: oklch(0.95 0.015 72);
+  --color-border: oklch(0.24 0.03 40 / 0.4);
+  --color-text: oklch(0.24 0.03 40);
+  --color-text-muted: oklch(0.24 0.03 40 / 0.6);
+  --color-primary: oklch(0.48 0.14 40);
+  --color-primary-dark: oklch(0.4 0.12 38);
+  --color-primary-contrast: oklch(0.98 0.01 75);
+  --color-ingreso: oklch(0.36 0.05 150);
+  --color-ingreso-bg: oklch(0.4 0.09 150 / 0.15);
+  --color-egreso: oklch(0.4 0.06 40);
+  --color-egreso-bg: oklch(0.48 0.14 40 / 0.15);
+  --color-focus: oklch(0.48 0.14 40);
+
+  /* The ledger look is flat and square — every radius collapses to 0. */
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+
+  /* Hard offset "stamped paper" shadows instead of soft blurs. */
+  --shadow-sm: 3px 3px 0 oklch(0.24 0.03 40 / 0.12);
+  --shadow-md: 6px 6px 0 oklch(0.24 0.03 40 / 0.12);
+
+  --font-heading: 'Big Shoulders Display', sans-serif;
+  --font-body: 'Libre Caslon Text', serif;
+
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #14161a;
-    --color-surface: #1d2025;
-    --color-border: #2b2f36;
-    --color-text: #eef0f2;
-    --color-text-muted: #9aa1ad;
-    --color-primary: #4caf7d;
-    --color-primary-dark: #3c8f66;
-    --color-primary-contrast: #0c1210;
-    --color-ingreso: #4caf7d;
-    --color-ingreso-bg: #163524;
-    --color-egreso: #e0665f;
-    --color-egreso-bg: #3a1c1c;
-    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
-    color-scheme: dark;
-  }
-}
+/* This theme is a fixed cream/ink ledger look — no dark-mode variant. */
 
 * {
   box-sizing: border-box;
@@ -53,18 +52,34 @@ body {
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   font-size: 15px;
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 h1, h2, h3, h4 {
   margin: 0 0 0.5em;
-  line-height: 1.25;
+  line-height: 1.1;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  letter-spacing: 0.3px;
+}
+
+h1 {
+  font-size: 1.9rem;
+  padding-bottom: 0.4em;
+  border-bottom: 2px solid var(--color-text);
+  margin-bottom: 1em;
 }
 
 a {
   color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-ingreso);
+  text-decoration: underline;
 }
 
 button {
@@ -74,7 +89,7 @@ button {
 input,
 select,
 textarea {
-  font-family: inherit;
+  font-family: var(--font-body);
   font-size: inherit;
   color: inherit;
 }
@@ -98,13 +113,16 @@ textarea {
   align-items: center;
   justify-content: center;
   gap: 0.4em;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-text);
   background: var(--color-surface);
   color: var(--color-text);
   border-radius: var(--radius-md);
-  padding: 0.65em 1.1em;
-  font-size: 0.95rem;
-  font-weight: 600;
+  padding: 0.65em 1.2em;
+  font-family: var(--font-heading);
+  font-weight: 800;
+  font-size: 0.82rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
   cursor: pointer;
   transition: transform 0.05s ease, box-shadow 0.15s ease, background 0.15s ease;
 }
@@ -136,6 +154,13 @@ textarea {
 .btn-ghost {
   background: transparent;
   border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.btn-ghost:hover {
+  box-shadow: none;
+  color: var(--color-primary);
 }
 
 .btn-danger {
@@ -149,28 +174,32 @@ textarea {
 
 .btn-lg {
   padding: 1em 1.25em;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.4rem;
   margin-bottom: 1rem;
 }
 
 .field label {
-  font-size: 0.85rem;
-  font-weight: 600;
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   color: var(--color-text-muted);
 }
 
 .input {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: 0.65em 0.8em;
+  padding: 0.6em 0.75em;
   background: var(--color-surface);
   color: var(--color-text);
+  font-family: var(--font-body);
   width: 100%;
 }
 
@@ -183,11 +212,13 @@ textarea {
 .badge {
   display: inline-flex;
   align-items: center;
-  padding: 0.2em 0.6em;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+  padding: 0.2em 0.65em;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-heading);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .badge-ingreso {
@@ -201,13 +232,14 @@ textarea {
 }
 
 .badge-role {
-  background: var(--color-border);
-  color: var(--color-text-muted);
-  text-transform: uppercase;
+  background: none;
+  border: 1px solid var(--color-text);
+  color: var(--color-text);
 }
 
 .badge-transferencia {
-  background: var(--color-border);
+  background: none;
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
   margin-left: 0.4em;
 }
@@ -216,28 +248,32 @@ textarea {
   overflow-x: auto;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+  border-top: 4px double var(--color-text);
 }
 
 table.data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
 }
 
 table.data-table th,
 table.data-table td {
-  padding: 0.65em 0.85em;
+  padding: 0.7em 0.85em;
   text-align: left;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px dotted var(--color-border);
   white-space: nowrap;
 }
 
 table.data-table thead th {
   color: var(--color-text-muted);
-  font-size: 0.78rem;
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
-  background: var(--color-bg);
+  letter-spacing: 0.08em;
+  background: none;
+  border-bottom: 1px solid var(--color-border);
 }
 
 table.data-table tbody tr:last-child td {
@@ -245,7 +281,7 @@ table.data-table tbody tr:last-child td {
 }
 
 table.data-table tbody tr:hover {
-  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  background: color-mix(in oklch, var(--color-primary) 6%, transparent);
 }
 
 .text-muted {
@@ -254,10 +290,14 @@ table.data-table tbody tr:hover {
 
 .text-ingreso {
   color: var(--color-ingreso);
+  font-family: var(--font-heading);
+  font-weight: 700;
 }
 
 .text-egreso {
   color: var(--color-egreso);
+  font-family: var(--font-heading);
+  font-weight: 700;
 }
 
 .stack {
@@ -289,7 +329,8 @@ table.data-table tbody tr:hover {
 .alert {
   padding: 0.75em 1em;
   border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  border: 1px solid currentColor;
+  font-size: 0.88rem;
 }
 
 .alert-error {
