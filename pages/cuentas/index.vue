@@ -98,38 +98,38 @@ async function borrar(id: string, nombre: string) {
 
     <p v-if="error" class="alert alert-error">{{ error }}</p>
 
-    <div class="table-wrap">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Tipo</th>
-            <th>Saldo inicial</th>
-            <th>Estado</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="c in cuentas" :key="c.id">
-            <td>{{ c.nombre }}</td>
-            <td>{{ c.tipo }}</td>
-            <td>{{ formatoMonto(c.saldo_inicial) }}</td>
-            <td>
-              <span class="badge" :class="c.activa ? 'badge-ingreso' : 'badge-egreso'">
-                {{ c.activa ? 'activa' : 'inactiva' }}
-              </span>
-            </td>
-            <td class="row acciones">
-              <button type="button" class="btn btn-ghost" @click="alternarActiva(c.id, c.activa)">
-                {{ c.activa ? 'Desactivar' : 'Activar' }}
-              </button>
-              <button type="button" class="btn btn-ghost btn-danger" @click="borrar(c.id, c.nombre)">
-                Eliminar
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <p v-if="!cuentas.length" class="card text-muted">Todavía no hay cuentas cargadas.</p>
+
+    <div v-else class="grid-balances">
+      <div
+        v-for="c in cuentas"
+        :key="c.id"
+        class="card cuenta-card"
+        :class="{ inactiva: !c.activa }"
+      >
+        <div class="row cuenta-card-header">
+          <h3 class="cuenta-nombre">{{ c.nombre }}</h3>
+          <span class="badge" :class="c.activa ? 'badge-ingreso' : 'badge-egreso'">
+            {{ c.activa ? 'activa' : 'inactiva' }}
+          </span>
+        </div>
+        <span class="cuenta-tipo text-muted">{{ c.tipo }}</span>
+
+        <div class="cuenta-saldo-wrap">
+          <span class="text-muted cuenta-saldo-label">Saldo inicial</span>
+          <span class="cuenta-saldo">{{ formatoMonto(c.saldo_inicial) }}</span>
+        </div>
+
+        <div class="row acciones">
+          <button type="button" class="btn btn-ghost" @click="alternarActiva(c.id, c.activa)">
+            {{ c.activa ? 'Desactivar' : 'Activar' }}
+          </button>
+          <span class="spacer" />
+          <button type="button" class="btn btn-ghost btn-danger" @click="borrar(c.id, c.nombre)">
+            Eliminar
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -142,7 +142,55 @@ async function borrar(id: string, nombre: string) {
   align-items: end;
 }
 
+.cuenta-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cuenta-card.inactiva {
+  opacity: 0.6;
+}
+
+.cuenta-card-header {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.cuenta-nombre {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.cuenta-tipo {
+  font-size: 0.8rem;
+  text-transform: capitalize;
+  letter-spacing: 0.03em;
+}
+
+.cuenta-saldo-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  margin: 0.35rem 0 0.5rem;
+  padding-top: 0.6rem;
+  border-top: 1px dotted var(--color-border);
+}
+
+.cuenta-saldo-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.cuenta-saldo {
+  font-family: var(--font-body);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
 .acciones {
-  justify-content: flex-end;
+  margin-top: auto;
 }
 </style>
