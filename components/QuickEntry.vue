@@ -35,6 +35,9 @@ const entidadNombre = ref("");
 const cuentaContraparteId = ref<string | null>(null);
 const concepto = ref("");
 const conceptoTocado = ref(false);
+const numeroFactura = ref("");
+const mostrarFactura = ref(false);
+const facturaInputRef = ref<HTMLInputElement | null>(null);
 const fecha = ref(ultimaFecha.value);
 
 const guardando = ref(false);
@@ -116,6 +119,11 @@ function confirmarConcepto() {
 	irA("fecha");
 }
 
+function mostrarCampoFactura() {
+	mostrarFactura.value = true;
+	nextTick(() => facturaInputRef.value?.focus());
+}
+
 const resumen = computed(() => {
 	const base = {
 		tipoLabel: tipo.value === "ingreso" ? "Ingreso" : "Egreso",
@@ -145,6 +153,7 @@ const resumen = computed(() => {
 		esTransferencia: false as const,
 		entidad: entidadNombre.value || "Sin entidad",
 		cuenta: cuentaActivaNombre.value,
+		numeroFactura: numeroFactura.value.trim(),
 	};
 });
 
@@ -193,6 +202,7 @@ async function guardar() {
 				entidad_id: entidadId.value,
 				cuenta_id: cuentaActivaId.value,
 				notas: null,
+				numero_factura: numeroFactura.value.trim() || null,
 				metadata: {},
 				created_by: user.value?.id ?? null,
 			});
@@ -223,6 +233,8 @@ function reiniciar() {
 	cuentaContraparteId.value = null;
 	concepto.value = "";
 	conceptoTocado.value = false;
+	numeroFactura.value = "";
+	mostrarFactura.value = false;
 	fecha.value = ultimaFecha.value;
 	pasoActual.value = "tipo";
 }
@@ -383,6 +395,30 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
 						class="input"
 						@keydown.enter="alPresionarEnterConcepto"
 					/>
+
+					<template v-if="!cuentaContraparteId">
+						<button
+							v-if="!mostrarFactura"
+							type="button"
+							class="btn btn-ghost qe-factura-toggle"
+							@click="mostrarCampoFactura"
+						>
+							+ Nº de factura
+						</button>
+						<div v-else class="field">
+							<label for="qe-factura">Nº de factura (opcional)</label>
+							<input
+								id="qe-factura"
+								ref="facturaInputRef"
+								v-model="numeroFactura"
+								type="text"
+								placeholder="Ej. 0001-A"
+								class="input"
+								@keydown.enter="alPresionarEnterConcepto"
+							/>
+						</div>
+					</template>
+
 					<button
 						type="button"
 						class="btn btn-primary btn-block btn-lg"
@@ -447,6 +483,12 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
 								<span class="text-muted">Cuenta</span
 								><span class="spacer" /><span>{{
 									resumen.cuenta
+								}}</span>
+							</div>
+							<div v-if="resumen.numeroFactura" class="row">
+								<span class="text-muted">Nº factura</span
+								><span class="spacer" /><span>{{
+									resumen.numeroFactura
 								}}</span>
 							</div>
 						</template>
@@ -548,6 +590,12 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
 	font-size: 1.6rem;
 	font-weight: 700;
 	padding: 0.5em;
+}
+
+.qe-factura-toggle {
+  align-self: flex-start;
+  font-size: 0.85rem;
+  padding: 0.3em 0.2em;
 }
 
 .qe-transfer-block {

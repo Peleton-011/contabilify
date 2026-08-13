@@ -74,6 +74,7 @@ export function useMovimientos() {
       concepto: input.concepto,
       entidad_id: null,
       notas: null,
+      numero_factura: null,
       created_by: input.createdBy,
     }
 

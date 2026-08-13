@@ -56,6 +56,7 @@ export type Movimiento = {
   entidad_id: string | null
   cuenta_id: string
   notas: string | null
+  numero_factura: string | null
   metadata: Record<string, unknown>
   created_by: string | null
   created_at: string
