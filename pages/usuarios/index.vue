@@ -57,6 +57,33 @@ async function alternarRol(id: string, rolActual: 'member' | 'admin') {
     cambiandoRolId.value = null
   }
 }
+
+const usuarioAEliminar = ref<{ id: string; nombre: string } | null>(null)
+const eliminando = ref(false)
+const errorEliminar = ref<string | null>(null)
+
+function pedirEliminar(u: { id: string; full_name: string | null; email: string | null }) {
+  errorEliminar.value = null
+  usuarioAEliminar.value = { id: u.id, nombre: u.full_name || u.email || 'este usuario' }
+}
+
+async function confirmarEliminar() {
+  if (!usuarioAEliminar.value) return
+  eliminando.value = true
+  errorEliminar.value = null
+  try {
+    await $fetch('/api/admin/eliminar-usuario', {
+      method: 'POST',
+      body: { id: usuarioAEliminar.value.id },
+    })
+    usuarioAEliminar.value = null
+    await fetchUsuarios()
+  } catch (err) {
+    errorEliminar.value = extraerMensaje(err)
+  } finally {
+    eliminando.value = false
+  }
+}
 </script>
 
 <template>
@@ -83,6 +110,7 @@ async function alternarRol(id: string, rolActual: 'member' | 'admin') {
     <p v-if="errorInvitar" class="alert alert-error">{{ errorInvitar }}</p>
     <p v-if="okInvitar" class="alert alert-ok">Invitación enviada.</p>
     <p v-if="errorRol" class="alert alert-error">{{ errorRol }}</p>
+    <p v-if="errorEliminar" class="alert alert-error">{{ errorEliminar }}</p>
 
     <div class="table-wrap">
       <table class="data-table">
@@ -106,20 +134,35 @@ async function alternarRol(id: string, rolActual: 'member' | 'admin') {
             </td>
             <td class="row acciones">
               <span v-if="u.id === profile?.id" class="text-muted tu-cuenta">Tú</span>
-              <button
-                v-else
-                type="button"
-                class="btn btn-ghost"
-                :disabled="cambiandoRolId === u.id"
-                @click="alternarRol(u.id, u.role)"
-              >
-                {{ u.role === 'admin' ? 'Quitar admin' : 'Hacer admin' }}
-              </button>
+              <template v-else>
+                <button
+                  type="button"
+                  class="btn btn-ghost"
+                  :disabled="cambiandoRolId === u.id"
+                  @click="alternarRol(u.id, u.role)"
+                >
+                  {{ u.role === 'admin' ? 'Quitar admin' : 'Hacer admin' }}
+                </button>
+                <button type="button" class="btn btn-ghost btn-danger" @click="pedirEliminar(u)">
+                  Eliminar
+                </button>
+              </template>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
+    <ConfirmModal
+      :abierto="!!usuarioAEliminar"
+      titulo="Eliminar usuario"
+      :mensaje="`¿Eliminar a ${usuarioAEliminar?.nombre}? Pierde el acceso a la app de inmediato. Sus movimientos ya cargados no se borran.`"
+      texto-confirmar="Eliminar"
+      peligroso
+      :procesando="eliminando"
+      @confirmar="confirmarEliminar"
+      @cancelar="usuarioAEliminar = null"
+    />
   </div>
 </template>
 

@@ -71,7 +71,7 @@ async function cerrarSesion() {
 
 .brand {
   font-family: var(--font-heading);
-  font-weight: 800;
+  font-weight: 900;
   font-size: 2rem;
   color: var(--color-text);
   text-decoration: none;

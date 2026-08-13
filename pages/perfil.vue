@@ -65,9 +65,10 @@ async function guardar() {
 
 <template>
   <div class="stack perfil-stack">
-    <h1>{{ esPrimeraVez ? 'Completa tu perfil' : 'Mi perfil' }}</h1>
+    <h1>{{ esPrimeraVez ? 'Crea tu cuenta' : 'Mi perfil' }}</h1>
     <p v-if="esPrimeraVez" class="text-muted">
-      Antes de continuar, cuéntanos tu nombre y elige una contraseña para tu cuenta.
+      Ya confirmaste tu correo. Elige tu nombre y una contraseña para terminar de crear tu
+      cuenta y empezar a usar Contabilify.
     </p>
 
     <form class="card stack" @submit.prevent="guardar">
