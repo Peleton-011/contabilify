@@ -187,7 +187,7 @@ async function borrar(id: string, nombre: string) {
 .cuenta-saldo {
   font-family: var(--font-body);
   font-size: 1.4rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .acciones {

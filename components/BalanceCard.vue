@@ -62,13 +62,13 @@ defineEmits<{
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .balance-monto {
   font-family: var(--font-body);
   font-size: 1.5rem;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .balance-estado {
