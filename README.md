@@ -48,16 +48,20 @@ desde la consola del navegador, no puede escribir datos sin ser admin.
   llama a la Admin API de Supabase (`/api/admin/invitar`, con la service role
   key) para enviar el email de invitación; no hace falta entrar al dashboard
   de Supabase para cada usuario nuevo.
-- **Primer inicio de sesión**: el enlace del correo de invitación apunta a
-  `/confirm`, que confirma el token con Supabase (esto lo hace el propio
-  cliente de `@nuxtjs/supabase`, sin código nuestro de por medio) y deja al
-  usuario con sesión iniciada pero sin nombre ni contraseña propia. Desde ahí
-  la app lo manda automáticamente a `/perfil` — que en este primer ingreso se
-  muestra como "Crea tu cuenta" — para completarlos antes de dejarlo usar el
-  resto de la app (lo controla `middleware/perfil-completo.global.ts`,
-  mirando si `profiles.full_name` está vacío). Si el enlace ya expiró o se
-  usó antes, `/confirm` lo muestra en vez de dejar la pantalla de "Confirmando…"
-  colgada para siempre.
+- **Primer inicio de sesión**: el enlace del correo de invitación (el que
+  arma Supabase automáticamente, sin plantilla personalizada) redirige a
+  `/confirm` con la sesión en el fragmento de la URL
+  (`#access_token=...&refresh_token=...`). Esa página es, en los hechos, la
+  pantalla de alta de cuenta: arma la sesión ella misma con
+  `supabase.auth.setSession` (ver la nota en `pages/confirm.vue` sobre por
+  qué no alcanza con dejar que el cliente la detecte solo) y muestra un
+  formulario para elegir nombre y contraseña, con el correo ya completado
+  (deshabilitado, viene de la sesión recién armada). Al guardar, manda a
+  `/`. Si el enlace ya expiró o se usó antes, muestra un error claro con un
+  enlace de vuelta a `/login` en vez de dejar al usuario sin ninguna salida.
+  `/perfil` (ver más abajo) tiene la misma lógica de "primer ingreso" como
+  respaldo, por si alguna vez hay una cuenta con sesión pero sin perfil
+  completo por otra vía.
 - **Editar perfil después**: `/perfil` queda disponible para cualquier
   usuario en cualquier momento (para cambiar su nombre o su contraseña),
   accesible desde el botón con su nombre en la barra de navegación.
@@ -178,36 +182,35 @@ Configuration**:
    `https://*.vercel.app/**`. Si sigues probando en local, deja también
    `http://localhost:3000/**` en la lista.
 
-Una vez actualizado, las invitaciones (`/usuarios`) y los enlaces de
-recuperación de contraseña (el "¿Olvidaste tu contraseña?" del login) van a
-apuntar al lugar correcto.
+Una vez actualizado, los enlaces de invitación y de recuperación de
+contraseña (el "¿Olvidaste tu contraseña?" del login) van a apuntar al lugar
+correcto — esto sigue haciendo falta con los correos por defecto de
+Supabase, sin plantilla personalizada.
 
-Si después de esto el enlace de invitación sigue sin abrir sesión (te deja
-en `/login`), lo más probable es que la URL de tu app desplegada **no**
-esté literalmente en la lista de Redirect URLs — el wildcard cubre
-subrutas (`/confirm` incluida) pero Supabase igual necesita la entrada
-exacta del dominio, no solo el wildcard.
+## Por qué el enlace de invitación llevaba a /login sin poder entrar
 
-## Personalizar el correo de invitación
+Esto **no** tiene que ver con plantillas de correo ni con SMTP: pasa incluso
+con el correo de invitación por defecto de Supabase, tal cual lo manda sin
+tocar nada en el dashboard.
 
-Por defecto, Supabase envía las invitaciones con un texto genérico ("You've
-been invited to a Supabase application"). Igual que las migraciones y la
-configuración de URLs, las plantillas de correo se gestionan a mano desde el
-dashboard — no hay forma de aplicarlas por código a menos que el proyecto
-esté vinculado con la CLI de Supabase (este no lo está).
+`@supabase/ssr` (la librería que usa `@nuxtjs/supabase` para el cliente)
+fuerza `flowType: "pkce"` en el cliente del navegador, sin forma de
+desactivarlo por configuración. El enlace de invitación (o de recuperación)
+que arma Supabase, en cambio, siempre redirige con la sesión en el
+fragmento de la URL (`#access_token=...&refresh_token=...`) — el flujo
+clásico "implícito" — porque no hay forma de que sea de otra manera: ese
+enlace lo generó un admin desde otro dispositivo/sesión, así que no puede
+haber un `code_verifier` de PKCE guardado localmente para completarlo. Con
+el cliente configurado en modo PKCE, el detector automático de sesión en la
+URL **rechaza** ese formato en vez de usarlo, y la persona invitada termina
+en `/login` sin sesión, sin contraseña y sin forma de entrar.
 
-1. En el dashboard de Supabase, andá a **Authentication > Email Templates**
-   y elegí la plantilla **"Invite user"**.
-2. Copiá el asunto y el HTML de
-   [`supabase/email-templates/invite-user.html`](./supabase/email-templates/invite-user.html)
-   (las instrucciones exactas están en el comentario al principio del
-   archivo) y pegalos en el editor de la plantilla.
-3. Guardá. Las próximas invitaciones que mandes desde `/usuarios` van a usar
-   este texto.
-
-La plantilla usa `{{ .ConfirmationURL }}`, que Supabase arma automáticamente
-con el `redirectTo` que ya le pasamos desde `/api/admin/invitar` — no hace
-falta tocar nada más para que el botón lleve al lugar correcto.
+`/confirm` (y `/actualizar-password` para la recuperación) ahora leen el
+fragmento de la URL ellas mismas y arman la sesión a mano con
+`supabase.auth.setSession({ access_token, refresh_token })`, que no depende
+del `flowType` configurado. No hace falta tocar ninguna plantilla de correo
+ni configurar SMTP — funciona con el envío y el enlace por defecto de
+Supabase tal cual vienen.
 
 ## Mantener activo el proyecto de Supabase (deploy en Vercel)
 
