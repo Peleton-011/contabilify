@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import type { EmailOtpType } from '@supabase/supabase-js'
-
 definePageMeta({ layout: 'auth' })
 
 const supabase = useSupabaseClient()
-const route = useRoute()
 const router = useRouter()
 const { actualizarNombre } = useProfile()
 
@@ -20,34 +17,46 @@ const confirmacion = ref('')
 const guardando = ref(false)
 const errorGuardar = ref<string | null>(null)
 
-// El enlace de invitación apunta acá con ?token_hash=...&type=invite (ver
-// supabase/email-templates/invite-user.html). Verificamos el token nosotros
-// mismos con `verifyOtp` en vez de depender de que el cliente detecte
-// automáticamente un hash/código en la URL: eso dependía de la configuración
-// de "Redirect URLs" del dashboard de Supabase y fallaba en silencio cuando
-// no coincidía exactamente, dejando al usuario varado en /login sin poder
-// entrar (sin contraseña) ni recuperarla (necesita sesión para eso).
+// El enlace de invitación (el de Supabase por defecto, sin plantilla
+// personalizada) redirige acá con la sesión en el fragmento de la URL
+// (#access_token=...&refresh_token=...&type=invite), no como ?code=. El
+// cliente de Supabase de este proyecto (@supabase/ssr) fuerza flowType
+// "pkce" y esa configuración hace que el auto-detectado de sesión en la URL
+// RECHACE ese formato en vez de procesarlo (piensa que es un enlace de un
+// flujo distinto al que espera) — por eso el enlace de invitación llevaba a
+// /login sin sesión. Acá lo leemos nosotros mismos y armamos la sesión con
+// `setSession`, que no depende del flowType configurado.
 onMounted(async () => {
-  const tokenHash = route.query.token_hash
-  const type = route.query.type
+  const hash = new URLSearchParams(window.location.hash.slice(1))
 
-  if (typeof tokenHash !== 'string' || typeof type !== 'string') {
+  const errorDescripcion = hash.get('error_description') || hash.get('error')
+  if (errorDescripcion) {
+    estado.value = 'error'
+    mensajeError.value = decodeURIComponent(errorDescripcion.replace(/\+/g, ' '))
+    return
+  }
+
+  const accessToken = hash.get('access_token')
+  const refreshToken = hash.get('refresh_token')
+
+  if (!accessToken || !refreshToken) {
     estado.value = 'error'
     mensajeError.value = 'Este enlace no es válido.'
     return
   }
 
-  const { data, error } = await supabase.auth.verifyOtp({
-    token_hash: tokenHash,
-    type: type as EmailOtpType,
+  const { data, error } = await supabase.auth.setSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
   })
+
+  // Ya no hace falta el fragmento en la URL (ni conviene dejarlo, son
+  // credenciales de sesión).
+  window.history.replaceState(null, '', window.location.pathname)
 
   if (error || !data.user) {
     estado.value = 'error'
-    mensajeError.value =
-      error?.message === 'Token has expired or is invalid'
-        ? 'Este enlace ya no es válido o expiró.'
-        : (error?.message ?? 'No pudimos confirmar el enlace.')
+    mensajeError.value = error?.message ?? 'No pudimos confirmar el enlace.'
     return
   }
 
