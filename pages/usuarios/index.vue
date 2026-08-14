@@ -10,12 +10,10 @@ const emailInvitar = ref('')
 const invitando = ref(false)
 const errorInvitar = ref<string | null>(null)
 const okInvitar = ref(false)
-const enlaceInvitacion = ref<string | null>(null)
 
 async function invitarUsuario() {
   errorInvitar.value = null
   okInvitar.value = false
-  enlaceInvitacion.value = null
 
   const email = emailInvitar.value.trim()
   if (!email) {
@@ -25,12 +23,8 @@ async function invitarUsuario() {
 
   invitando.value = true
   try {
-    const respuesta = await $fetch('/api/admin/invitar', { method: 'POST', body: { email } })
-    if (respuesta.correoEnviado) {
-      okInvitar.value = true
-    } else {
-      enlaceInvitacion.value = respuesta.enlace
-    }
+    await $fetch('/api/admin/invitar', { method: 'POST', body: { email } })
+    okInvitar.value = true
     emailInvitar.value = ''
     await fetchUsuarios()
   } catch (err) {
@@ -115,13 +109,6 @@ async function confirmarEliminar() {
     </form>
     <p v-if="errorInvitar" class="alert alert-error">{{ errorInvitar }}</p>
     <p v-if="okInvitar" class="alert alert-ok">Invitación enviada.</p>
-    <div v-if="enlaceInvitacion" class="alert alert-error stack enlace-manual">
-      <p>
-        No se pudo enviar el correo automáticamente (¿configuraste el SMTP? ver README).
-        Copiá este enlace y mandáselo vos:
-      </p>
-      <input :value="enlaceInvitacion" type="text" class="input" readonly @focus="($event.target as HTMLInputElement).select()">
-    </div>
     <p v-if="errorRol" class="alert alert-error">{{ errorRol }}</p>
     <p v-if="errorEliminar" class="alert alert-error">{{ errorEliminar }}</p>
 
@@ -186,18 +173,5 @@ async function confirmarEliminar() {
 
 .tu-cuenta {
   font-size: 0.85rem;
-}
-
-.enlace-manual {
-  gap: 0.5rem;
-}
-
-.enlace-manual p {
-  margin: 0;
-}
-
-.enlace-manual .input {
-  font-size: 0.8rem;
-  background: var(--color-surface);
 }
 </style>

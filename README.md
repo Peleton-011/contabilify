@@ -45,13 +45,9 @@ desde la consola del navegador, no puede escribir datos sin ser admin.
 ## Usuarios: alta y primer inicio de sesión
 
 - **Invitar usuarios**: un admin invita por correo desde `/usuarios`. Esto
-  llama a `/api/admin/invitar` (con la service role key), que crea el
-  usuario con la Admin API de Supabase y arma el enlace de invitación él
-  mismo — no usa el sistema de correo de Supabase para nada (ni sus
-  plantillas ni su envío). El correo lo manda un SMTP propio; ver "Correo de
-  invitación" más abajo para configurarlo. Si el SMTP no está configurado (o
-  falla el envío), `/usuarios` te muestra el enlace para copiarlo y
-  mandárselo a la persona vos mismo por donde sea.
+  llama a la Admin API de Supabase (`/api/admin/invitar`, con la service role
+  key) para enviar el email de invitación; no hace falta entrar al dashboard
+  de Supabase para cada usuario nuevo.
 - **Primer inicio de sesión**: el enlace del correo de invitación apunta a
   `/confirm?token_hash=...&type=invite`. Esa página es, en los hechos, la
   pantalla de alta de cuenta: verifica el token ella misma
@@ -155,21 +151,16 @@ Limitaciones conocidas y aceptadas:
 6. Copia `.env.example` a `.env` y completa `SUPABASE_URL`, `SUPABASE_KEY` y
    `SUPABASE_SERVICE_KEY` con los datos de **Project Settings > API** (la
    service role key ahora hace falta también para invitar usuarios desde
-   `/usuarios`, no solo para `/api/keepalive`). También completa las
-   variables `SMTP_*` para que las invitaciones manden el correo — ver
-   "Correo de invitación" más abajo.
+   `/usuarios`, no solo para `/api/keepalive`).
 7. En **Authentication > URL Configuration**, configura el **Site URL** y los
-   **Redirect URLs** — ver la sección siguiente. Esto solo afecta a la
-   recuperación de contraseña; las invitaciones no lo necesitan.
+   **Redirect URLs** — ver la sección siguiente, es la causa más común de que
+   los enlaces de los correos terminen apuntando a `localhost`.
 
-## Arreglar los enlaces de recuperación de contraseña que van a localhost
+## Arreglar los enlaces de correo que van a localhost
 
-Esto aplica solo a "¿Olvidaste tu contraseña?" del login — las invitaciones
-ya no pasan por acá (ver "Correo de invitación" más abajo).
-
-Si el enlace de recuperación te lleva a `http://localhost:3000` en vez de a
-tu app desplegada, el problema **no está en el código**: está en la
-configuración del proyecto de Supabase.
+Si los enlaces de invitación o de recuperación de contraseña te llevan a
+`http://localhost:3000` en vez de a tu app desplegada, el problema **no está
+en el código**: está en la configuración del proyecto de Supabase.
 
 Todo proyecto nuevo trae por defecto **Site URL = `http://localhost:3000`**.
 Supabase usa ese valor como destino de los enlaces de los correos de
@@ -188,43 +179,37 @@ Configuration**:
    `https://*.vercel.app/**`. Si sigues probando en local, deja también
    `http://localhost:3000/**` en la lista.
 
-## Correo de invitación (SMTP propio)
+Una vez actualizado, los enlaces de recuperación de contraseña (el
+"¿Olvidaste tu contraseña?" del login) van a apuntar al lugar correcto. Las
+invitaciones ya no dependen de esta lista — ver la sección siguiente.
 
-Las invitaciones **no** usan el sistema de correo de Supabase — ni su envío
-ni sus plantillas del dashboard. Esto es intencional: ese sistema depende de
-que la URL de tu app esté exactamente en la lista de "Redirect URLs" (ver
-sección anterior), y si no coincide, Supabase igual redirige pero sin la
-sesión armada — la persona invitada queda en `/login` sin poder entrar (no
-tiene contraseña todavía) ni recuperarla (hace falta sesión para eso).
+## Personalizar el correo de invitación (obligatorio, no solo estético)
 
-En cambio, `/api/admin/invitar` arma el usuario y el enlace con
-`generateLink` (que le pasa el token directamente a nuestro servidor, sin
-redirecciones de por medio) y lo manda con un SMTP propio
-(`server/utils/enviarCorreoInvitacion.ts`). El enlace apunta a
-`/confirm?token_hash=...&type=invite`, que verifica el token ella misma con
-`supabase.auth.verifyOtp` — no depende de ninguna configuración de Supabase.
+Por defecto, Supabase envía las invitaciones con un texto genérico ("You've
+been invited to a Supabase application") y un enlace (`{{ .ConfirmationURL }}`)
+que depende de que la URL de tu app esté en la lista de "Redirect URLs" del
+dashboard — si no coincide exactamente, Supabase igual redirige, pero sin la
+sesión armada, y el usuario termina en `/login` sin poder entrar (no tiene
+contraseña todavía) ni recuperarla (hace falta sesión para eso).
 
-Para que el envío funcione, agregá estas variables de entorno (a `.env` en
-local, o como variables de entorno en tu hosting):
+Para evitar depender de esa lista, `/confirm` arma la sesión ella misma con
+`supabase.auth.verifyOtp`, a partir de un `token_hash` que viaja en la URL.
+Esto **requiere** una plantilla de correo que arme el enlace así — sin
+actualizarla, las invitaciones van a seguir rotas.
 
-```
-SMTP_HOST=smtp.tu-proveedor.com
-SMTP_PORT=587
-SMTP_USER=tu-usuario
-SMTP_PASS=tu-contraseña-o-api-key
-SMTP_FROM=Contabilify <no-reply@tudominio.com>
-```
+1. En el dashboard de Supabase, andá a **Authentication > Email Templates**
+   y elegí la plantilla **"Invite user"**.
+2. Copiá el asunto y el HTML de
+   [`supabase/email-templates/invite-user.html`](./supabase/email-templates/invite-user.html)
+   (las instrucciones exactas están en el comentario al principio del
+   archivo) y pegalos en el editor de la plantilla.
+3. Guardá. Las próximas invitaciones que mandes desde `/usuarios` van a usar
+   este enlace y este texto.
 
-Cualquier proveedor SMTP normal sirve (Resend, Postmark, SendGrid, Brevo,
-tu propio correo si soporta SMTP, etc.) — Supabase no interviene en esto
-para nada. Si estas variables **no** están configuradas (o el envío falla),
-`/api/admin/invitar` no rompe: crea igual al usuario y `/usuarios` te
-muestra el enlace de invitación para copiarlo y mandárselo vos por donde
-sea, mientras terminás de configurar el SMTP.
-
-Para cambiar el texto o el diseño del correo, editá directamente
-`server/utils/enviarCorreoInvitacion.ts` — es HTML normal en el código, no
-hace falta tocar nada en el dashboard de Supabase.
+La plantilla arma el enlace como `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite`.
+`{{ .RedirectTo }}` es el mismo valor que `/api/admin/invitar` ya le pasa a
+la API de invitar (el origen real desde el que invitaste), así que tampoco
+depende del Site URL configurado en el dashboard.
 
 ## Mantener activo el proyecto de Supabase (deploy en Vercel)
 
@@ -270,7 +255,6 @@ components/
   EntitySelect.vue     # combo de entidades con búsqueda + alta rápida de una nueva
   DateStepper.vue      # input de fecha aaaa-mm-dd con flechas +1/-1 día
   BalanceCard.vue      # tarjeta de saldo, seleccionable para elegir la cuenta activa
-  ConfirmModal.vue     # modal de confirmación genérico (usado para eliminar usuarios)
 composables/
   useProfile.ts         # perfil, rol y estado "perfil completo" del usuario actual
   useUsuarios.ts        # listado de usuarios + cambio de rol (para /usuarios)
@@ -285,7 +269,6 @@ middleware/
   perfil-completo.global.ts    # fuerza a completar /perfil antes de usar el resto de la app
 pages/
   login.vue              # incluye "¿Olvidaste tu contraseña?"
-  confirm.vue             # alta de cuenta: verifica el token de invitación y arma nombre/contraseña
   actualizar-password.vue # destino del enlace de recuperación de contraseña
   perfil.vue              # completar/editar nombre y contraseña propios
   index.vue              # dashboard: saldos + carga rápida + últimos movimientos
@@ -295,19 +278,19 @@ pages/
   usuarios/index.vue      # invitar usuarios y asignar rol admin (admin)
   exportar/index.vue      # exportar rango como Excel / sincronizar con planilla subida (admin)
 server/api/
-  keepalive.get.ts               # cron para mantener activo el proyecto de Supabase
-  admin/invitar.post.ts          # crea el usuario y manda la invitación por SMTP propio (requiere ser admin)
-  admin/eliminar-usuario.post.ts # elimina un usuario con la Admin API (requiere ser admin)
-  exportar.get.ts                 # genera el Excel de un rango de fechas
-  sincronizar.post.ts             # compara un Excel subido contra la base y devuelve una copia con lo que faltaba
+  keepalive.get.ts        # cron para mantener activo el proyecto de Supabase
+  admin/invitar.post.ts   # invita usuarios con la Admin API (requiere ser admin)
+  exportar.get.ts          # genera el Excel de un rango de fechas
+  sincronizar.post.ts      # compara un Excel subido contra la base y devuelve una copia con lo que faltaba
 server/utils/
-  ledgerXlsx.ts               # generador/lector de hojas "año contable" (compartido por exportar y sincronizar)
-  enviarCorreoInvitacion.ts   # arma y manda el correo de invitación por SMTP
+  ledgerXlsx.ts            # generador/lector de hojas "año contable" (compartido por exportar y sincronizar)
 supabase/migrations/
   0001_init.sql                     # esquema completo + RLS
   0002_grants_vistas.sql            # permisos explícitos sobre las vistas
   0003_perfiles_email_y_admin.sql   # columna profiles.email + triggers de sincronización
   0004_numero_factura.sql           # columna movimientos.numero_factura
+supabase/email-templates/
+  invite-user.html         # plantilla del correo de invitación para pegar en el dashboard
 types/
   schema.ts              # tipos de dominio
   database.ts            # tipado del cliente de Supabase
