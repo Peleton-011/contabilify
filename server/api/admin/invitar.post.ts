@@ -28,14 +28,16 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, statusMessage: 'Ingresa un correo electrónico válido' })
   }
 
+  const redirectTo = `${obtenerSiteUrl(event)}/confirm`
+
   const admin = serverSupabaseServiceRole<Database>(event)
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-    redirectTo: `${obtenerSiteUrl(event)}/confirm`,
-  })
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email, { redirectTo })
 
   if (error) {
     throw createError({ statusCode: 400, statusMessage: error.message })
   }
 
-  return { ok: true, userId: data.user?.id ?? null }
+  // Se devuelve para poder verificar en /usuarios que el enlace apunta a
+  // donde corresponde, sin tener que ir a buscar los logs de Vercel.
+  return { ok: true, userId: data.user?.id ?? null, redirectTo }
 })
