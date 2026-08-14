@@ -49,15 +49,16 @@ desde la consola del navegador, no puede escribir datos sin ser admin.
   key) para enviar el email de invitación; no hace falta entrar al dashboard
   de Supabase para cada usuario nuevo.
 - **Primer inicio de sesión**: el enlace del correo de invitación apunta a
-  `/confirm`, que confirma el token con Supabase (esto lo hace el propio
-  cliente de `@nuxtjs/supabase`, sin código nuestro de por medio) y deja al
-  usuario con sesión iniciada pero sin nombre ni contraseña propia. Desde ahí
-  la app lo manda automáticamente a `/perfil` — que en este primer ingreso se
-  muestra como "Crea tu cuenta" — para completarlos antes de dejarlo usar el
-  resto de la app (lo controla `middleware/perfil-completo.global.ts`,
-  mirando si `profiles.full_name` está vacío). Si el enlace ya expiró o se
-  usó antes, `/confirm` lo muestra en vez de dejar la pantalla de "Confirmando…"
-  colgada para siempre.
+  `/confirm?token_hash=...&type=invite`. Esa página es, en los hechos, la
+  pantalla de alta de cuenta: verifica el token ella misma
+  (`supabase.auth.verifyOtp`), y una vez armada la sesión muestra un
+  formulario para elegir nombre y contraseña, con el correo ya completado
+  (deshabilitado, viene del token verificado). Al guardar, manda a `/`. Si
+  el enlace ya expiró o se usó antes, muestra un error claro con un enlace
+  de vuelta a `/login` en vez de dejar al usuario sin ninguna salida.
+  `/perfil` (ver más abajo) tiene la misma lógica de "primer ingreso" como
+  respaldo, por si alguna vez hay una cuenta con sesión pero sin perfil
+  completo por otra vía.
 - **Editar perfil después**: `/perfil` queda disponible para cualquier
   usuario en cualquier momento (para cambiar su nombre o su contraseña),
   accesible desde el botón con su nombre en la barra de navegación.
@@ -178,23 +179,23 @@ Configuration**:
    `https://*.vercel.app/**`. Si sigues probando en local, deja también
    `http://localhost:3000/**` en la lista.
 
-Una vez actualizado, las invitaciones (`/usuarios`) y los enlaces de
-recuperación de contraseña (el "¿Olvidaste tu contraseña?" del login) van a
-apuntar al lugar correcto.
+Una vez actualizado, los enlaces de recuperación de contraseña (el
+"¿Olvidaste tu contraseña?" del login) van a apuntar al lugar correcto. Las
+invitaciones ya no dependen de esta lista — ver la sección siguiente.
 
-Si después de esto el enlace de invitación sigue sin abrir sesión (te deja
-en `/login`), lo más probable es que la URL de tu app desplegada **no**
-esté literalmente en la lista de Redirect URLs — el wildcard cubre
-subrutas (`/confirm` incluida) pero Supabase igual necesita la entrada
-exacta del dominio, no solo el wildcard.
-
-## Personalizar el correo de invitación
+## Personalizar el correo de invitación (obligatorio, no solo estético)
 
 Por defecto, Supabase envía las invitaciones con un texto genérico ("You've
-been invited to a Supabase application"). Igual que las migraciones y la
-configuración de URLs, las plantillas de correo se gestionan a mano desde el
-dashboard — no hay forma de aplicarlas por código a menos que el proyecto
-esté vinculado con la CLI de Supabase (este no lo está).
+been invited to a Supabase application") y un enlace (`{{ .ConfirmationURL }}`)
+que depende de que la URL de tu app esté en la lista de "Redirect URLs" del
+dashboard — si no coincide exactamente, Supabase igual redirige, pero sin la
+sesión armada, y el usuario termina en `/login` sin poder entrar (no tiene
+contraseña todavía) ni recuperarla (hace falta sesión para eso).
+
+Para evitar depender de esa lista, `/confirm` arma la sesión ella misma con
+`supabase.auth.verifyOtp`, a partir de un `token_hash` que viaja en la URL.
+Esto **requiere** una plantilla de correo que arme el enlace así — sin
+actualizarla, las invitaciones van a seguir rotas.
 
 1. En el dashboard de Supabase, andá a **Authentication > Email Templates**
    y elegí la plantilla **"Invite user"**.
@@ -203,11 +204,12 @@ esté vinculado con la CLI de Supabase (este no lo está).
    (las instrucciones exactas están en el comentario al principio del
    archivo) y pegalos en el editor de la plantilla.
 3. Guardá. Las próximas invitaciones que mandes desde `/usuarios` van a usar
-   este texto.
+   este enlace y este texto.
 
-La plantilla usa `{{ .ConfirmationURL }}`, que Supabase arma automáticamente
-con el `redirectTo` que ya le pasamos desde `/api/admin/invitar` — no hace
-falta tocar nada más para que el botón lleve al lugar correcto.
+La plantilla arma el enlace como `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=invite`.
+`{{ .RedirectTo }}` es el mismo valor que `/api/admin/invitar` ya le pasa a
+la API de invitar (el origen real desde el que invitaste), así que tampoco
+depende del Site URL configurado en el dashboard.
 
 ## Mantener activo el proyecto de Supabase (deploy en Vercel)
 
