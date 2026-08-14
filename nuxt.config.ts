@@ -19,6 +19,16 @@ export default defineNuxtConfig({
     // Se define en Vercel como variable de entorno CRON_SECRET.
     cronSecret: process.env.CRON_SECRET,
 
+    // SMTP para el correo de invitación (server/utils/enviarCorreoInvitacion.ts).
+    // No usa el sistema de correo/plantillas de Supabase para nada — ver README
+    // "Correo de invitación". Si falta alguno, el envío se salta y el admin
+    // recibe el enlace de invitación para copiar y mandar a mano.
+    smtpHost: process.env.SMTP_HOST,
+    smtpPort: process.env.SMTP_PORT,
+    smtpUser: process.env.SMTP_USER,
+    smtpPass: process.env.SMTP_PASS,
+    smtpFrom: process.env.SMTP_FROM,
+
     public: {
       // Usada como último recurso por el servidor (ej. el link de las
       // invitaciones) cuando la petición no trae cabecera Origin. En el
