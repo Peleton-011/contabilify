@@ -7,14 +7,16 @@ export default defineNuxtConfig({
   supabase: {
     // El módulo protege todas las rutas por defecto y redirige a /login
     // si no hay sesión. Las páginas públicas se listan en `exclude`.
-    // `/actualizar-password` tiene que estar acá: llega sin sesión (la arma
-    // ella misma a partir del fragmento de la URL, ver el comentario en esa
-    // página) y sin este exclude el middleware la manda a /login antes de
-    // que el componente llegue a montarse.
+    // `/confirm` ya queda afuera por ser `callback`, pero se agrega también
+    // acá de forma explícita para que quede claro y no dependa solo de eso.
+    // `/actualizar-password` tiene que estar en la lista: llega sin sesión
+    // (la arma ella misma a partir del fragmento de la URL, ver el
+    // comentario en esa página) y sin este exclude el middleware la manda a
+    // /login antes de que el componente llegue a montarse.
     redirectOptions: {
       login: '/login',
       callback: '/confirm',
-      exclude: ['/login', '/actualizar-password'],
+      exclude: ['/login', '/confirm', '/actualizar-password'],
     },
   },
 
