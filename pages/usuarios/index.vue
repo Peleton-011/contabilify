@@ -10,10 +10,12 @@ const emailInvitar = ref('')
 const invitando = ref(false)
 const errorInvitar = ref<string | null>(null)
 const okInvitar = ref(false)
+const ultimoRedirectTo = ref<string | null>(null)
 
 async function invitarUsuario() {
   errorInvitar.value = null
   okInvitar.value = false
+  ultimoRedirectTo.value = null
 
   const email = emailInvitar.value.trim()
   if (!email) {
@@ -23,8 +25,9 @@ async function invitarUsuario() {
 
   invitando.value = true
   try {
-    await $fetch('/api/admin/invitar', { method: 'POST', body: { email } })
+    const respuesta = await $fetch('/api/admin/invitar', { method: 'POST', body: { email } })
     okInvitar.value = true
+    ultimoRedirectTo.value = respuesta.redirectTo
     emailInvitar.value = ''
     await fetchUsuarios()
   } catch (err) {
@@ -108,7 +111,12 @@ async function confirmarEliminar() {
       </button>
     </form>
     <p v-if="errorInvitar" class="alert alert-error">{{ errorInvitar }}</p>
-    <p v-if="okInvitar" class="alert alert-ok">Invitación enviada.</p>
+    <p v-if="okInvitar" class="alert alert-ok">
+      Invitación enviada.
+      <span v-if="ultimoRedirectTo" class="text-muted redirect-preview">
+        Enlace configurado a: {{ ultimoRedirectTo }}
+      </span>
+    </p>
     <p v-if="errorRol" class="alert alert-error">{{ errorRol }}</p>
     <p v-if="errorEliminar" class="alert alert-error">{{ errorEliminar }}</p>
 
@@ -173,5 +181,12 @@ async function confirmarEliminar() {
 
 .tu-cuenta {
   font-size: 0.85rem;
+}
+
+.redirect-preview {
+  display: block;
+  font-size: 0.8rem;
+  margin-top: 0.2rem;
+  word-break: break-all;
 }
 </style>

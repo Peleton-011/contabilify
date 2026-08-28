@@ -212,6 +212,16 @@ del `flowType` configurado. No hace falta tocar ninguna plantilla de correo
 ni configurar SMTP — funciona con el envío y el enlace por defecto de
 Supabase tal cual vienen.
 
+**Red de seguridad si igual termina en `/login`:** si el *Site URL* del
+proyecto de Supabase no coincide con el dominio real de la app (ver la
+sección anterior), Supabase puede terminar mandando de vuelta a la app a un
+lugar distinto de `/confirm` — igual trae la sesión en el fragmento de la
+URL, solo que en la página equivocada. `/login` revisa esto apenas carga:
+si encuentra `access_token` (o un `error`) en el fragmento, redirige de una
+a `/confirm` (o a `/actualizar-password` si `type=recovery`) conservando el
+fragmento, en vez de mostrar el formulario de inicio de sesión sin poder
+hacer nada con la sesión que ya llegó.
+
 ## Mantener activo el proyecto de Supabase (deploy en Vercel)
 
 El plan gratuito de Supabase pausa los proyectos tras ~7 días sin actividad.
