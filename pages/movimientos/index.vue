@@ -6,6 +6,7 @@ const { movimientos, fetchMovimientos, actualizarMovimiento, eliminarMovimiento,
   useMovimientos()
 const { cuentas, fetchCuentas } = useCuentas()
 const { entidadesActivas, fetchEntidades } = useEntidades()
+const { entradasSalidas, fetchEntradasSalidas } = useEntradasSalidas()
 
 const filtros = reactive({
   desde: '',
@@ -16,13 +17,20 @@ const filtros = reactive({
   texto: '',
 })
 
-await Promise.all([fetchCuentas(false), fetchEntidades(), aplicarFiltros()])
+await Promise.all([fetchCuentas(false), fetchEntidades(), aplicarFiltros(), fetchEntradasSalidas()])
 
 async function aplicarFiltros() {
   await fetchMovimientos({
     desde: filtros.desde || undefined,
     hasta: filtros.hasta || undefined,
     tipo: filtros.tipo || null,
+    cuentaId: filtros.cuentaId || null,
+    entidadId: filtros.entidadId || null,
+    texto: filtros.texto || undefined,
+  })
+  await fetchEntradasSalidas({
+    desde: filtros.desde || undefined,
+    hasta: filtros.hasta || undefined,
     cuentaId: filtros.cuentaId || null,
     entidadId: filtros.entidadId || null,
     texto: filtros.texto || undefined,
@@ -120,6 +128,13 @@ async function borrar(m: MovimientoConRelaciones) {
   <div class="stack">
     <h1>Movimientos</h1>
 
+    <section class="grid-balances">
+      <IncomeExpenseCard
+        :entradasSalidas="entradasSalidas"
+        nombre="Cómputo selección actual"
+        :seleccionable="false"
+      />
+    </section>
     <form class="card filtros" @submit.prevent="aplicarFiltros">
       <div class="filtros-grid">
         <div class="field">
