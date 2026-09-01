@@ -1,6 +1,21 @@
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
 
+// Si Supabase termina redirigiendo acá en vez de a /confirm o
+// /actualizar-password (pasa cuando el Site URL configurado en el
+// dashboard no coincide con el que arma la app), el fragmento de la URL
+// igual trae la sesión — no hace falta perderla. Se revisa antes que
+// cualquier otra cosa y, si hay algo que procesar, se manda de una a la
+// página que sabe qué hacer con eso, preservando el fragmento.
+if (import.meta.client && window.location.hash) {
+  const hash = new URLSearchParams(window.location.hash.slice(1))
+  const haySesionOError = hash.has('access_token') || hash.has('error') || hash.has('error_description')
+  if (haySesionOError) {
+    const destino = hash.get('type') === 'recovery' ? '/actualizar-password' : '/confirm'
+    window.location.replace(destino + window.location.hash)
+  }
+}
+
 const supabase = useSupabaseClient()
 const user = useSupabaseUser()
 const router = useRouter()

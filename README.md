@@ -48,11 +48,20 @@ desde la consola del navegador, no puede escribir datos sin ser admin.
   llama a la Admin API de Supabase (`/api/admin/invitar`, con la service role
   key) para enviar el email de invitación; no hace falta entrar al dashboard
   de Supabase para cada usuario nuevo.
-- **Primer inicio de sesión**: el usuario invitado entra por el enlace del
-  correo con sesión iniciada pero sin nombre ni contraseña propia. La app lo
-  manda automáticamente a `/perfil` para completarlos antes de dejarlo usar
-  el resto de la app (lo controla `middleware/perfil-completo.global.ts`,
-  mirando si `profiles.full_name` está vacío).
+- **Primer inicio de sesión**: el enlace del correo de invitación (el que
+  arma Supabase automáticamente, sin plantilla personalizada) redirige a
+  `/confirm` con la sesión en el fragmento de la URL
+  (`#access_token=...&refresh_token=...`). Esa página es, en los hechos, la
+  pantalla de alta de cuenta: arma la sesión ella misma con
+  `supabase.auth.setSession` (ver la nota en `pages/confirm.vue` sobre por
+  qué no alcanza con dejar que el cliente la detecte solo) y muestra un
+  formulario para elegir nombre y contraseña, con el correo ya completado
+  (deshabilitado, viene de la sesión recién armada). Al guardar, manda a
+  `/`. Si el enlace ya expiró o se usó antes, muestra un error claro con un
+  enlace de vuelta a `/login` en vez de dejar al usuario sin ninguna salida.
+  `/perfil` (ver más abajo) tiene la misma lógica de "primer ingreso" como
+  respaldo, por si alguna vez hay una cuenta con sesión pero sin perfil
+  completo por otra vía.
 - **Editar perfil después**: `/perfil` queda disponible para cualquier
   usuario en cualquier momento (para cambiar su nombre o su contraseña),
   accesible desde el botón con su nombre en la barra de navegación.
@@ -173,9 +182,45 @@ Configuration**:
    `https://*.vercel.app/**`. Si sigues probando en local, deja también
    `http://localhost:3000/**` en la lista.
 
-Una vez actualizado, las invitaciones (`/usuarios`) y los enlaces de
-recuperación de contraseña (el "¿Olvidaste tu contraseña?" del login) van a
-apuntar al lugar correcto.
+Una vez actualizado, los enlaces de invitación y de recuperación de
+contraseña (el "¿Olvidaste tu contraseña?" del login) van a apuntar al lugar
+correcto — esto sigue haciendo falta con los correos por defecto de
+Supabase, sin plantilla personalizada.
+
+## Por qué el enlace de invitación llevaba a /login sin poder entrar
+
+Esto **no** tiene que ver con plantillas de correo ni con SMTP: pasa incluso
+con el correo de invitación por defecto de Supabase, tal cual lo manda sin
+tocar nada en el dashboard.
+
+`@supabase/ssr` (la librería que usa `@nuxtjs/supabase` para el cliente)
+fuerza `flowType: "pkce"` en el cliente del navegador, sin forma de
+desactivarlo por configuración. El enlace de invitación (o de recuperación)
+que arma Supabase, en cambio, siempre redirige con la sesión en el
+fragmento de la URL (`#access_token=...&refresh_token=...`) — el flujo
+clásico "implícito" — porque no hay forma de que sea de otra manera: ese
+enlace lo generó un admin desde otro dispositivo/sesión, así que no puede
+haber un `code_verifier` de PKCE guardado localmente para completarlo. Con
+el cliente configurado en modo PKCE, el detector automático de sesión en la
+URL **rechaza** ese formato en vez de usarlo, y la persona invitada termina
+en `/login` sin sesión, sin contraseña y sin forma de entrar.
+
+`/confirm` (y `/actualizar-password` para la recuperación) ahora leen el
+fragmento de la URL ellas mismas y arman la sesión a mano con
+`supabase.auth.setSession({ access_token, refresh_token })`, que no depende
+del `flowType` configurado. No hace falta tocar ninguna plantilla de correo
+ni configurar SMTP — funciona con el envío y el enlace por defecto de
+Supabase tal cual vienen.
+
+**Red de seguridad si igual termina en `/login`:** si el *Site URL* del
+proyecto de Supabase no coincide con el dominio real de la app (ver la
+sección anterior), Supabase puede terminar mandando de vuelta a la app a un
+lugar distinto de `/confirm` — igual trae la sesión en el fragmento de la
+URL, solo que en la página equivocada. `/login` revisa esto apenas carga:
+si encuentra `access_token` (o un `error`) en el fragmento, redirige de una
+a `/confirm` (o a `/actualizar-password` si `type=recovery`) conservando el
+fragmento, en vez de mostrar el formulario de inicio de sesión sin poder
+hacer nada con la sesión que ya llegó.
 
 ## Mantener activo el proyecto de Supabase (deploy en Vercel)
 
@@ -255,6 +300,9 @@ supabase/migrations/
   0002_grants_vistas.sql            # permisos explícitos sobre las vistas
   0003_perfiles_email_y_admin.sql   # columna profiles.email + triggers de sincronización
   0004_numero_factura.sql           # columna movimientos.numero_factura
+
+supabase/email-templates/
+  invite-user.html         # plantilla del correo de invitación para pegar en el dashboard
 types/
   schema.ts              # tipos de dominio
   database.ts            # tipado del cliente de Supabase

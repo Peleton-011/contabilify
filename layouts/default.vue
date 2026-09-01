@@ -15,13 +15,13 @@ async function cerrarSesion() {
       <div class="container row masthead">
         <div class="masthead-title">
           <NuxtLink to="/" class="brand">Contabilify</NuxtLink>
-          <span class="brand-sub">· Treasury Office</span>
+          <span class="brand-sub">· El Chirin</span>
         </div>
 
         <div class="spacer" />
 
         <span v-if="profile" class="badge badge-role">{{ profile.role }}</span>
-        <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name || 'Mi perfil' }}</NuxtLink>
+        <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name?.split(' ')[0] || 'Mi perfil' }}</NuxtLink>
         <button class="btn btn-ghost" @click="cerrarSesion">Salir</button>
       </div>
 
@@ -55,6 +55,12 @@ async function cerrarSesion() {
   border-bottom: 4px double var(--color-text);
   align-items: baseline;
   flex-wrap: wrap;
+  gap: 0;
+}
+
+.masthead > * {
+    padding: 0.2em 0.65em;
+
 }
 
 .masthead-title {
@@ -65,7 +71,7 @@ async function cerrarSesion() {
 
 .brand {
   font-family: var(--font-heading);
-  font-weight: 800;
+  font-weight: 900;
   font-size: 2rem;
   color: var(--color-text);
   text-decoration: none;
