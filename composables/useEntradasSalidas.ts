@@ -1,7 +1,7 @@
 import type { Database } from '~/types/database'
 import { type MovimientoConRelaciones, type NuevoMovimiento, type TipoMovimiento } from '~/types/schema'
 
-export interface FiltrosMovimientos {
+export interface FiltrosEntradasSalidas {
   desde?: string
   hasta?: string
 //   tipo?: TipoMovimiento | null
@@ -24,7 +24,7 @@ export function useEntradasSalidas() {
   const pending = ref(false)
   const error = ref<string | null>(null)
 
-  async function fetchEntradasSalidas(filtros: FiltrosMovimientos = {}, limite = 300) {
+  async function fetchEntradasSalidas(filtros: FiltrosEntradasSalidas = {}, limite = 300) {
     pending.value = true
     error.value = null
 
