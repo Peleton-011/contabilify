@@ -7,14 +7,24 @@ export function useEntidades() {
   const usoPorEntidad = useState<Record<string, number>>('entidades-uso', () => ({}))
   const pending = ref(false)
   const error = ref<string | null>(null)
+  const { ledgerActivoId } = useLedgerActivo()
 
   async function fetchEntidades() {
+    if (!ledgerActivoId.value) {
+      entidades.value = []
+      usoPorEntidad.value = {}
+      return
+    }
     pending.value = true
     error.value = null
 
     const [{ data: ents, error: errEnt }, { data: usos, error: errUso }] = await Promise.all([
-      supabase.from('entidades').select('*').order('nombre', { ascending: true }),
-      supabase.from('entidades_uso').select('*'),
+      supabase
+        .from('entidades')
+        .select('*')
+        .eq('ledger_id', ledgerActivoId.value)
+        .order('nombre', { ascending: true }),
+      supabase.from('entidades_uso').select('*').eq('ledger_id', ledgerActivoId.value),
     ])
 
     if (errEnt) error.value = errEnt.message
@@ -47,12 +57,13 @@ export function useEntidades() {
   const entidadesTodasPorFrecuencia = computed(() => porFrecuencia(entidades.value))
 
   async function crearEntidad(nombre: string) {
+    if (!ledgerActivoId.value) throw new Error('No hay un ledger activo')
     const nombreLimpio = nombre.trim()
     if (!nombreLimpio) throw new Error('El nombre no puede estar vacío')
 
     const { data, error: err } = await supabase
       .from('entidades')
-      .insert({ nombre: nombreLimpio })
+      .insert({ nombre: nombreLimpio, ledger_id: ledgerActivoId.value })
       .select()
       .single()
     if (err) throw err

@@ -23,14 +23,20 @@ export function useEntradasSalidas() {
   const entradasSalidas = useState<entradasSalidas>('entradasSalidas', () => ({entradas: 0, salidas: 0}))
   const pending = ref(false)
   const error = ref<string | null>(null)
+  const { ledgerActivoId } = useLedgerActivo()
 
   async function fetchEntradasSalidas(filtros: FiltrosEntradasSalidas = {}, limite = 300) {
+    if (!ledgerActivoId.value) {
+      entradasSalidas.value = { entradas: 0, salidas: 0 }
+      return
+    }
     pending.value = true
     error.value = null
 
     let query = supabase
       .from('movimientos')
       .select(SELECT_CON_RELACIONES)
+      .eq('ledger_id', ledgerActivoId.value)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(limite)

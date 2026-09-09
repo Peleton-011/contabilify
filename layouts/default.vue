@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const { profile, isAdmin } = useProfile()
+const { profile } = useProfile()
+const { ledgerActivo, isAdminActivo } = useLedgers()
 const supabase = useSupabaseClient()
 const router = useRouter()
 
@@ -15,12 +16,11 @@ async function cerrarSesion() {
       <div class="container row masthead">
         <div class="masthead-title">
           <NuxtLink to="/" class="brand">Contabilify</NuxtLink>
-          <span class="brand-sub">· El Chirin</span>
+          <NuxtLink v-if="ledgerActivo" to="/ledgers" ><span class="brand-sub">· {{ ledgerActivo.nombre }}</span></NuxtLink>
         </div>
 
         <div class="spacer" />
-
-        <span v-if="profile" class="badge badge-role">{{ profile.role }}</span>
+        <span v-if="ledgerActivo" class="badge badge-role">{{ ledgerActivo.role === 'admin' ? 'admin' : 'miembro' }}</span>
         <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name?.split(' ')[0] || 'Mi perfil' }}</NuxtLink>
         <button class="btn btn-ghost" @click="cerrarSesion">Salir</button>
       </div>
@@ -28,10 +28,10 @@ async function cerrarSesion() {
       <nav class="container row nav-links">
         <NuxtLink to="/">Carga rápida</NuxtLink>
         <NuxtLink to="/movimientos">Movimientos</NuxtLink>
-        <NuxtLink v-if="isAdmin" to="/entidades">Entidades</NuxtLink>
-        <NuxtLink v-if="isAdmin" to="/cuentas">Cuentas</NuxtLink>
-        <NuxtLink v-if="isAdmin" to="/usuarios">Usuarios</NuxtLink>
-        <NuxtLink v-if="isAdmin" to="/exportar">Exportar</NuxtLink>
+        <NuxtLink v-if="isAdminActivo" to="/entidades">Entidades</NuxtLink>
+        <NuxtLink v-if="isAdminActivo" to="/cuentas">Cuentas</NuxtLink>
+        <NuxtLink v-if="isAdminActivo" to="/usuarios">Usuarios</NuxtLink>
+        <NuxtLink v-if="isAdminActivo" to="/exportar">Exportar</NuxtLink>
       </nav>
     </header>
 

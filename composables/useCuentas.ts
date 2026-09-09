@@ -6,11 +6,20 @@ export function useCuentas() {
   const cuentas = useState<Cuenta[]>('cuentas', () => [])
   const pending = ref(false)
   const error = ref<string | null>(null)
+  const { ledgerActivoId } = useLedgerActivo()
 
   async function fetchCuentas(soloActivas = true) {
+    if (!ledgerActivoId.value) {
+      cuentas.value = []
+      return
+    }
     pending.value = true
     error.value = null
-    let query = supabase.from('cuentas').select('*').order('orden', { ascending: true })
+    let query = supabase
+      .from('cuentas')
+      .select('*')
+      .eq('ledger_id', ledgerActivoId.value)
+      .order('orden', { ascending: true })
     if (soloActivas) query = query.eq('activa', true)
 
     const { data, error: err } = await query
@@ -20,7 +29,12 @@ export function useCuentas() {
   }
 
   async function crearCuenta(input: Pick<Cuenta, 'nombre' | 'tipo'> & Partial<Cuenta>) {
-    const { data, error: err } = await supabase.from('cuentas').insert(input).select().single()
+    if (!ledgerActivoId.value) throw new Error('No hay un ledger activo')
+    const { data, error: err } = await supabase
+      .from('cuentas')
+      .insert({ ...input, ledger_id: ledgerActivoId.value })
+      .select()
+      .single()
     if (err) throw err
     await fetchCuentas(false)
     return data as Cuenta

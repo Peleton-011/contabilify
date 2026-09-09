@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { MovimientoConRelaciones } from "~/types/schema";
 
-const { isAdmin } = useProfile();
+const { isAdminActivo: isAdmin } = useLedgers();
 const {
 	movimientos,
 	fetchMovimientos,
