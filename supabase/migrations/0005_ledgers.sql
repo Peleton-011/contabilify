@@ -84,7 +84,7 @@ declare
   v_ledger_id uuid;
 begin
   insert into public.ledgers (nombre, created_by)
-  values ('Mi organización', (select id from public.profiles order by created_at asc limit 1))
+  values ('El Chiring', (select id from public.profiles order by created_at asc limit 1))
   returning id into v_ledger_id;
 
   update public.cuentas set ledger_id = v_ledger_id where ledger_id is null;
@@ -280,8 +280,14 @@ create policy ledger_members_admin_delete on public.ledger_members
 -- 11) Vistas: agregan ledger_id para que el cliente pueda filtrar por
 --     el ledger activo (con RLS solo, un usuario con varios ledgers
 --     vería filas de todos mezclados)
+--
+-- `create or replace view` no permite insertar una columna en medio de
+-- las que ya existían (solo agregar al final), así que hay que
+-- borrarlas y recrearlas. Eso también borra el `grant select` que les
+-- dio 0002_grants_vistas.sql, así que se vuelve a otorgar al final.
 -- ------------------------------------------------------------------
-create or replace view public.saldos_cuentas
+drop view if exists public.saldos_cuentas;
+create view public.saldos_cuentas
 with (security_invoker = true) as
 select
   c.id as cuenta_id,
@@ -297,9 +303,16 @@ from public.cuentas c
 left join public.movimientos m on m.cuenta_id = c.id and m.ledger_id = c.ledger_id
 group by c.id, c.ledger_id, c.nombre, c.tipo, c.orden, c.saldo_inicial;
 
-create or replace view public.entidades_uso
+comment on view public.saldos_cuentas is 'Saldo actual por cuenta. security_invoker=true para respetar RLS del usuario que consulta.';
+
+drop view if exists public.entidades_uso;
+create view public.entidades_uso
 with (security_invoker = true) as
 select entidad_id, ledger_id, count(*) as usos
 from public.movimientos
 where entidad_id is not null
 group by entidad_id, ledger_id;
+
+comment on view public.entidades_uso is 'Cantidad de movimientos por entidad, usada para ordenar el selector de carga rápida por frecuencia.';
+
+grant select on public.saldos_cuentas, public.entidades_uso to authenticated;
