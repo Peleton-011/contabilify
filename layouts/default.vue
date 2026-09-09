@@ -16,12 +16,10 @@ async function cerrarSesion() {
       <div class="container row masthead">
         <div class="masthead-title">
           <NuxtLink to="/" class="brand">Contabilify</NuxtLink>
-          <span class="brand-sub">· El Chirin</span>
+          <NuxtLink v-if="ledgerActivo" to="/ledgers" ><span class="brand-sub">· {{ ledgerActivo.nombre }}</span></NuxtLink>
         </div>
 
         <div class="spacer" />
-
-        <NuxtLink v-if="ledgerActivo" to="/ledgers" class="btn btn-ghost">{{ ledgerActivo.nombre }}</NuxtLink>
         <span v-if="ledgerActivo" class="badge badge-role">{{ ledgerActivo.role === 'admin' ? 'admin' : 'miembro' }}</span>
         <NuxtLink to="/perfil" class="btn btn-ghost">{{ profile?.full_name?.split(' ')[0] || 'Mi perfil' }}</NuxtLink>
         <button class="btn btn-ghost" @click="cerrarSesion">Salir</button>
