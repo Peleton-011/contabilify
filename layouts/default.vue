@@ -30,6 +30,7 @@ async function cerrarSesion() {
         <NuxtLink to="/movimientos">Movimientos</NuxtLink>
         <NuxtLink v-if="isAdminActivo" to="/entidades">Entidades</NuxtLink>
         <NuxtLink v-if="isAdminActivo" to="/cuentas">Cuentas</NuxtLink>
+        <NuxtLink v-if="isAdminActivo" to="/movimientos-recurrentes">Recurrentes</NuxtLink>
         <NuxtLink v-if="isAdminActivo" to="/usuarios">Usuarios</NuxtLink>
         <NuxtLink v-if="isAdminActivo" to="/exportar">Exportar</NuxtLink>
       </nav>

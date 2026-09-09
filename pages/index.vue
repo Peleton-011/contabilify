@@ -3,7 +3,12 @@ const { isAdminActivo: isAdmin } = useLedgers()
 const { saldos, saldoTotal, fetchSaldos } = useSaldos()
 const { movimientos, fetchMovimientos } = useMovimientos()
 const { cuentaActivaId, seleccionar: seleccionarCuenta, cargarDesdeStorage } = useCuentaActiva()
+const { materializarPendientes } = useMovimientosRecurrentes()
 
+// Pone al día los movimientos recurrentes (suscripciones, comisiones,
+// intereses) antes de mostrar saldos y últimos movimientos, así una
+// sesión siempre ve lo que corresponde sin depender de un cron.
+await materializarPendientes()
 await Promise.all([fetchSaldos(), fetchMovimientos({}, 6)])
 cargarDesdeStorage()
 
