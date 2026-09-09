@@ -17,14 +17,20 @@ export function useMovimientos() {
   const movimientos = useState<MovimientoConRelaciones[]>('movimientos', () => [])
   const pending = ref(false)
   const error = ref<string | null>(null)
+  const { ledgerActivoId } = useLedgerActivo()
 
   async function fetchMovimientos(filtros: FiltrosMovimientos = {}, limite = 300) {
+    if (!ledgerActivoId.value) {
+      movimientos.value = []
+      return
+    }
     pending.value = true
     error.value = null
 
     let query = supabase
       .from('movimientos')
       .select(SELECT_CON_RELACIONES)
+      .eq('ledger_id', ledgerActivoId.value)
       .order('fecha', { ascending: false })
       .order('created_at', { ascending: false })
       .limit(limite)
@@ -42,10 +48,11 @@ export function useMovimientos() {
     pending.value = false
   }
 
-  async function crearMovimiento(input: NuevoMovimiento) {
+  async function crearMovimiento(input: Omit<NuevoMovimiento, 'ledger_id'>) {
+    if (!ledgerActivoId.value) throw new Error('No hay un ledger activo')
     const { data, error: err } = await supabase
       .from('movimientos')
-      .insert(input)
+      .insert({ ...input, ledger_id: ledgerActivoId.value })
       .select(SELECT_CON_RELACIONES)
       .single()
     if (err) throw err
@@ -67,6 +74,7 @@ export function useMovimientos() {
     cuentaDestinoId: string
     createdBy: string | null
   }) {
+    if (!ledgerActivoId.value) throw new Error('No hay un ledger activo')
     const transferenciaId = crypto.randomUUID()
     const base = {
       fecha: input.fecha,
@@ -76,6 +84,7 @@ export function useMovimientos() {
       notas: null,
       numero_factura: null,
       created_by: input.createdBy,
+      ledger_id: ledgerActivoId.value,
     }
 
     const filas: NuevoMovimiento[] = [

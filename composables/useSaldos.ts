@@ -6,13 +6,19 @@ export function useSaldos() {
   const saldos = useState<SaldoCuenta[]>('saldos', () => [])
   const pending = ref(false)
   const error = ref<string | null>(null)
+  const { ledgerActivoId } = useLedgerActivo()
 
   async function fetchSaldos() {
+    if (!ledgerActivoId.value) {
+      saldos.value = []
+      return
+    }
     pending.value = true
     error.value = null
     const { data, error: err } = await supabase
       .from('saldos_cuentas')
       .select('*')
+      .eq('ledger_id', ledgerActivoId.value)
       .order('orden', { ascending: true })
     if (err) error.value = err.message
     else saldos.value = (data ?? []) as SaldoCuenta[]

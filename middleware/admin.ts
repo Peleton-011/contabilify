@@ -1,7 +1,8 @@
 export default defineNuxtRouteMiddleware(async () => {
-  const { profile, fetchProfile } = useProfile()
-  if (!profile.value) await fetchProfile()
-  if (profile.value?.role !== 'admin') {
+  const { ledgers, isAdminActivo, fetchLedgers, asegurarLedgerActivo } = useLedgers()
+  if (!ledgers.value.length) await fetchLedgers()
+  asegurarLedgerActivo()
+  if (!isAdminActivo.value) {
     return navigateTo('/')
   }
 })

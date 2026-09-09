@@ -22,8 +22,17 @@ export default defineEventHandler(async (event) => {
   if (!user) throw createError({ statusCode: 401, statusMessage: 'No autorizado' })
 
   const supabase = await serverSupabaseClient<Database>(event)
-  const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (perfil?.role !== 'admin') {
+
+  const ledgerId = String(getQuery(event).ledgerId ?? '')
+  if (!ledgerId) throw createError({ statusCode: 400, statusMessage: 'Falta el ledger' })
+
+  const { data: miembro } = await supabase
+    .from('ledger_members')
+    .select('role')
+    .eq('ledger_id', ledgerId)
+    .eq('user_id', user.id)
+    .single()
+  if (miembro?.role !== 'admin') {
     throw createError({ statusCode: 403, statusMessage: 'Solo un administrador puede sincronizar' })
   }
 
@@ -45,6 +54,7 @@ export default defineEventHandler(async (event) => {
   const { data: cuentasData, error: errCuentas } = await supabase
     .from('cuentas')
     .select('id, nombre, saldo_inicial, orden')
+    .eq('ledger_id', ledgerId)
     .order('orden', { ascending: true })
   if (errCuentas) throw createError({ statusCode: 500, statusMessage: errCuentas.message })
   const cuentas: CuentaDb[] = cuentasData ?? []
@@ -64,6 +74,7 @@ export default defineEventHandler(async (event) => {
     .select(
       'id, fecha, tipo, monto, concepto, numero_factura, cuenta_id, created_at, metadata, entidad:entidades(nombre), cuenta:cuentas(nombre)'
     )
+    .eq('ledger_id', ledgerId)
     .order('fecha', { ascending: true })
   if (errMovs) throw createError({ statusCode: 500, statusMessage: errMovs.message })
 

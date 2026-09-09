@@ -1,5 +1,5 @@
 <script setup lang="ts">
-const { isAdmin } = useProfile()
+const { isAdminActivo: isAdmin } = useLedgers()
 const { saldos, saldoTotal, fetchSaldos } = useSaldos()
 const { movimientos, fetchMovimientos } = useMovimientos()
 const { cuentaActivaId, seleccionar: seleccionarCuenta, cargarDesdeStorage } = useCuentaActiva()

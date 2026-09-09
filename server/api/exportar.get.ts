@@ -17,12 +17,21 @@ export default defineEventHandler(async (event) => {
   }
 
   const supabase = await serverSupabaseClient<Database>(event)
-  const { data: perfil } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-  if (perfil?.role !== 'admin') {
+
+  const query = getQuery(event)
+  const ledgerId = String(query.ledgerId ?? '')
+  if (!ledgerId) throw createError({ statusCode: 400, statusMessage: 'Falta el ledger' })
+
+  const { data: miembro } = await supabase
+    .from('ledger_members')
+    .select('role')
+    .eq('ledger_id', ledgerId)
+    .eq('user_id', user.id)
+    .single()
+  if (miembro?.role !== 'admin') {
     throw createError({ statusCode: 403, statusMessage: 'Solo un administrador puede exportar' })
   }
 
-  const query = getQuery(event)
   const desde = String(query.desde ?? '')
   const hasta = String(query.hasta ?? '')
   if (!/^\d{4}-\d{2}-\d{2}$/.test(desde) || !/^\d{4}-\d{2}-\d{2}$/.test(hasta) || desde > hasta) {
@@ -32,6 +41,7 @@ export default defineEventHandler(async (event) => {
   const { data: cuentasData, error: errCuentas } = await supabase
     .from('cuentas')
     .select('id, nombre, saldo_inicial, activa, orden')
+    .eq('ledger_id', ledgerId)
     .order('orden', { ascending: true })
   if (errCuentas) throw createError({ statusCode: 500, statusMessage: errCuentas.message })
   const cuentas = (cuentasData ?? []).filter((c) => c.activa)
@@ -39,6 +49,7 @@ export default defineEventHandler(async (event) => {
   const { data: previos, error: errPrevios } = await supabase
     .from('movimientos')
     .select('cuenta_id, tipo, monto')
+    .eq('ledger_id', ledgerId)
     .lt('fecha', desde)
   if (errPrevios) throw createError({ statusCode: 500, statusMessage: errPrevios.message })
 
@@ -54,6 +65,7 @@ export default defineEventHandler(async (event) => {
     .select(
       'id, fecha, tipo, monto, concepto, numero_factura, cuenta_id, created_at, metadata, entidad:entidades(nombre), cuenta:cuentas(nombre)'
     )
+    .eq('ledger_id', ledgerId)
     .gte('fecha', desde)
     .lte('fecha', hasta)
     .order('fecha', { ascending: true })

@@ -2,6 +2,7 @@
 definePageMeta({ middleware: 'admin' })
 
 const { profile } = useProfile()
+const { ledgerActivoId } = useLedgers()
 const { usuarios, fetchUsuarios, cambiarRol } = useUsuarios()
 
 await fetchUsuarios()
@@ -25,7 +26,10 @@ async function invitarUsuario() {
 
   invitando.value = true
   try {
-    const respuesta = await $fetch('/api/admin/invitar', { method: 'POST', body: { email } })
+    const respuesta = await $fetch('/api/admin/invitar', {
+      method: 'POST',
+      body: { email, ledgerId: ledgerActivoId.value },
+    })
     okInvitar.value = true
     ultimoRedirectTo.value = respuesta.redirectTo
     emailInvitar.value = ''
@@ -49,11 +53,11 @@ function extraerMensaje(err: unknown): string {
 const cambiandoRolId = ref<string | null>(null)
 const errorRol = ref<string | null>(null)
 
-async function alternarRol(id: string, rolActual: 'member' | 'admin') {
+async function alternarRol(userId: string, rolActual: 'member' | 'admin') {
   errorRol.value = null
-  cambiandoRolId.value = id
+  cambiandoRolId.value = userId
   try {
-    await cambiarRol(id, rolActual === 'admin' ? 'member' : 'admin')
+    await cambiarRol(userId, rolActual === 'admin' ? 'member' : 'admin')
   } catch (err) {
     errorRol.value = err instanceof Error ? err.message : 'No se pudo cambiar el rol'
   } finally {
@@ -61,30 +65,30 @@ async function alternarRol(id: string, rolActual: 'member' | 'admin') {
   }
 }
 
-const usuarioAEliminar = ref<{ id: string; nombre: string } | null>(null)
-const eliminando = ref(false)
-const errorEliminar = ref<string | null>(null)
+const usuarioAQuitar = ref<{ userId: string; nombre: string } | null>(null)
+const quitando = ref(false)
+const errorQuitar = ref<string | null>(null)
 
-function pedirEliminar(u: { id: string; full_name: string | null; email: string | null }) {
-  errorEliminar.value = null
-  usuarioAEliminar.value = { id: u.id, nombre: u.full_name || u.email || 'este usuario' }
+function pedirQuitar(u: { userId: string; nombre: string | null; email: string | null }) {
+  errorQuitar.value = null
+  usuarioAQuitar.value = { userId: u.userId, nombre: u.nombre || u.email || 'este usuario' }
 }
 
-async function confirmarEliminar() {
-  if (!usuarioAEliminar.value) return
-  eliminando.value = true
-  errorEliminar.value = null
+async function confirmarQuitar() {
+  if (!usuarioAQuitar.value) return
+  quitando.value = true
+  errorQuitar.value = null
   try {
-    await $fetch('/api/admin/eliminar-usuario', {
+    await $fetch('/api/admin/quitar-miembro', {
       method: 'POST',
-      body: { id: usuarioAEliminar.value.id },
+      body: { userId: usuarioAQuitar.value.userId, ledgerId: ledgerActivoId.value },
     })
-    usuarioAEliminar.value = null
+    usuarioAQuitar.value = null
     await fetchUsuarios()
   } catch (err) {
-    errorEliminar.value = extraerMensaje(err)
+    errorQuitar.value = extraerMensaje(err)
   } finally {
-    eliminando.value = false
+    quitando.value = false
   }
 }
 </script>
@@ -93,7 +97,7 @@ async function confirmarEliminar() {
   <div class="stack">
     <h1>Usuarios</h1>
     <p class="text-muted">
-      Invita a los miembros de la asociación por correo y elige quiénes tienen permisos de
+      Invita a los miembros de este ledger por correo y elige quiénes tienen permisos de
       administrador. Los usuarios nuevos completan su nombre y contraseña la primera vez que
       inician sesión.
     </p>
@@ -112,13 +116,13 @@ async function confirmarEliminar() {
     </form>
     <p v-if="errorInvitar" class="alert alert-error">{{ errorInvitar }}</p>
     <p v-if="okInvitar" class="alert alert-ok">
-      Invitación enviada.
+      Listo.
       <span v-if="ultimoRedirectTo" class="text-muted redirect-preview">
         Enlace configurado a: {{ ultimoRedirectTo }}
       </span>
     </p>
     <p v-if="errorRol" class="alert alert-error">{{ errorRol }}</p>
-    <p v-if="errorEliminar" class="alert alert-error">{{ errorEliminar }}</p>
+    <p v-if="errorQuitar" class="alert alert-error">{{ errorQuitar }}</p>
 
     <div class="table-wrap">
       <table class="data-table">
@@ -134,25 +138,29 @@ async function confirmarEliminar() {
           <tr v-if="!usuarios.length">
             <td colspan="4" class="text-muted">Todavía no hay usuarios.</td>
           </tr>
-          <tr v-for="u in usuarios" :key="u.id">
-            <td>{{ u.full_name || '(sin completar)' }}</td>
-            <td>{{ u.email }}</td>
+          <tr v-for="u in usuarios" :key="u.user_id">
+            <td>{{ u.profile.full_name || '(sin completar)' }}</td>
+            <td>{{ u.profile.email }}</td>
             <td>
               <span class="badge badge-role">{{ u.role }}</span>
             </td>
             <td class="row acciones">
-              <span v-if="u.id === profile?.id" class="text-muted tu-cuenta">Tú</span>
+              <span v-if="u.user_id === profile?.id" class="text-muted tu-cuenta">Tú</span>
               <template v-else>
                 <button
                   type="button"
                   class="btn btn-ghost"
-                  :disabled="cambiandoRolId === u.id"
-                  @click="alternarRol(u.id, u.role)"
+                  :disabled="cambiandoRolId === u.user_id"
+                  @click="alternarRol(u.user_id, u.role)"
                 >
                   {{ u.role === 'admin' ? 'Quitar admin' : 'Hacer admin' }}
                 </button>
-                <button type="button" class="btn btn-ghost btn-danger" @click="pedirEliminar(u)">
-                  Eliminar
+                <button
+                  type="button"
+                  class="btn btn-ghost btn-danger"
+                  @click="pedirQuitar({ userId: u.user_id, nombre: u.profile.full_name, email: u.profile.email })"
+                >
+                  Quitar del ledger
                 </button>
               </template>
             </td>
@@ -162,14 +170,14 @@ async function confirmarEliminar() {
     </div>
 
     <ConfirmModal
-      :abierto="!!usuarioAEliminar"
-      titulo="Eliminar usuario"
-      :mensaje="`¿Eliminar a ${usuarioAEliminar?.nombre}? Pierde el acceso a la app de inmediato. Sus movimientos ya cargados no se borran.`"
-      texto-confirmar="Eliminar"
+      :abierto="!!usuarioAQuitar"
+      titulo="Quitar del ledger"
+      :mensaje="`¿Quitar a ${usuarioAQuitar?.nombre} de este ledger? Pierde el acceso a este ledger de inmediato (sigue teniendo su cuenta y otros ledgers, si los tiene). Los movimientos ya cargados no se borran.`"
+      texto-confirmar="Quitar"
       peligroso
-      :procesando="eliminando"
-      @confirmar="confirmarEliminar"
-      @cancelar="usuarioAEliminar = null"
+      :procesando="quitando"
+      @confirmar="confirmarQuitar"
+      @cancelar="usuarioAQuitar = null"
     />
   </div>
 </template>
