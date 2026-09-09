@@ -300,6 +300,7 @@ supabase/migrations/
   0002_grants_vistas.sql            # permisos explícitos sobre las vistas
   0003_perfiles_email_y_admin.sql   # columna profiles.email + triggers de sincronización
   0004_numero_factura.sql           # columna movimientos.numero_factura
+
 supabase/email-templates/
   invite-user.html         # plantilla del correo de invitación para pegar en el dashboard
 types/
