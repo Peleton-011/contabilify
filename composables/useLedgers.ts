@@ -15,7 +15,8 @@ export function useLedgers() {
 		error.value = null;
 
 		if (!user.value) {
-			user.value = null;
+			ledgers.value = [];
+			pending.value = false;
 			return;
 		}
 
