@@ -40,9 +40,8 @@ export function useProfile() {
     await fetchProfile()
   }
 
-  const isAdmin = computed(() => profile.value?.role === 'admin')
   const isMember = computed(() => !!profile.value)
   const perfilCompleto = computed(() => !!profile.value?.full_name)
 
-  return { profile, isAdmin, isMember, perfilCompleto, pending, fetchProfile, actualizarNombre }
+  return { profile, isMember, perfilCompleto, pending, fetchProfile, actualizarNombre }
 }

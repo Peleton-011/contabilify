@@ -1,6 +1,8 @@
 <script setup lang="ts">
 definePageMeta({ middleware: 'admin' })
 
+const { ledgerActivoId } = useLedgers()
+
 const anioActual = new Date().getFullYear()
 
 const modo = ref<'anio' | 'rango'>('anio')
@@ -17,8 +19,8 @@ const aniosDisponibles = computed(() => {
 const urlExportar = computed(() => {
   const d = modo.value === 'anio' ? `${anio.value}-01-01` : desde.value
   const h = modo.value === 'anio' ? `${anio.value}-12-31` : hasta.value
-  if (!d || !h) return null
-  return `/api/exportar?desde=${d}&hasta=${h}`
+  if (!d || !h || !ledgerActivoId.value) return null
+  return `/api/exportar?desde=${d}&hasta=${h}&ledgerId=${ledgerActivoId.value}`
 })
 
 const archivo = ref<File | null>(null)
@@ -63,6 +65,7 @@ async function sincronizar() {
     formData.append('archivo', archivo.value)
     const respuesta = await $fetch.raw('/api/sincronizar', {
       method: 'POST',
+      query: { ledgerId: ledgerActivoId.value },
       body: formData,
       responseType: 'blob',
     })

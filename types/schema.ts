@@ -17,12 +17,38 @@ export type Profile = {
   id: string
   full_name: string | null
   email: string | null
+  created_at: string
+}
+
+export type Ledger = {
+  id: string
+  nombre: string
+  created_by: string | null
+  created_at: string
+}
+
+// Fila de ledger_members con el rol del usuario actual dentro de ese ledger,
+// tal como la usa el selector de ledgers.
+export type LedgerConRol = Ledger & {
+  role: Rol
+}
+
+export type LedgerMember = {
+  ledger_id: string
+  user_id: string
   role: Rol
   created_at: string
 }
 
+// Fila de ledger_members con el perfil ya resuelto (join), como la devuelve
+// el listado de miembros de /usuarios.
+export type LedgerMemberConPerfil = LedgerMember & {
+  profile: Pick<Profile, 'id' | 'full_name' | 'email'>
+}
+
 export type Cuenta = {
   id: string
+  ledger_id: string
   nombre: string
   tipo: TipoCuenta
   saldo_inicial: number
@@ -33,6 +59,7 @@ export type Cuenta = {
 
 export type SaldoCuenta = {
   cuenta_id: string
+  ledger_id: string
   nombre: string
   tipo: TipoCuenta
   orden: number
@@ -42,6 +69,7 @@ export type SaldoCuenta = {
 
 export type Entidad = {
   id: string
+  ledger_id: string
   nombre: string
   activa: boolean
   created_at: string
@@ -49,6 +77,7 @@ export type Entidad = {
 
 export type Movimiento = {
   id: string
+  ledger_id: string
   fecha: string // yyyy-mm-dd
   tipo: TipoMovimiento
   monto: number

@@ -1,4 +1,4 @@
-import type { Cuenta, Entidad, Movimiento, Profile, SaldoCuenta } from './schema'
+import type { Cuenta, Entidad, Ledger, LedgerMember, Movimiento, Profile, SaldoCuenta } from './schema'
 
 // Tipado mínimo de la base para el cliente de Supabase. No cubre todas las
 // variantes de Postgres, solo lo necesario para autocompletar en los
@@ -12,15 +12,27 @@ export interface Database {
         Update: Partial<Profile>
         Relationships: []
       }
+      ledgers: {
+        Row: Ledger
+        Insert: Partial<Ledger> & { nombre: string }
+        Update: Partial<Ledger>
+        Relationships: []
+      }
+      ledger_members: {
+        Row: LedgerMember
+        Insert: Partial<LedgerMember> & { ledger_id: string; user_id: string }
+        Update: Partial<LedgerMember>
+        Relationships: []
+      }
       cuentas: {
         Row: Cuenta
-        Insert: Partial<Cuenta> & { nombre: string }
+        Insert: Partial<Cuenta> & { nombre: string; ledger_id: string }
         Update: Partial<Cuenta>
         Relationships: []
       }
       entidades: {
         Row: Entidad
-        Insert: Partial<Entidad> & { nombre: string }
+        Insert: Partial<Entidad> & { nombre: string; ledger_id: string }
         Update: Partial<Entidad>
         Relationships: []
       }
@@ -31,6 +43,7 @@ export interface Database {
           monto: number
           concepto: string
           cuenta_id: string
+          ledger_id: string
         }
         Update: Partial<Movimiento>
         Relationships: []
@@ -42,10 +55,15 @@ export interface Database {
         Relationships: []
       }
       entidades_uso: {
-        Row: { entidad_id: string; usos: number }
+        Row: { entidad_id: string; ledger_id: string; usos: number }
         Relationships: []
       }
     }
-    Functions: Record<string, never>
+    Functions: {
+      crear_ledger: {
+        Args: { p_nombre: string }
+        Returns: Ledger
+      }
+    }
   }
 }
