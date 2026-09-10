@@ -27,10 +27,11 @@ async function cerrarSesion() {
 
       <nav class="container row nav-links">
         <NuxtLink to="/">Carga rápida</NuxtLink>
+        <NuxtLink to="/analisis">Análisis</NuxtLink>
         <NuxtLink to="/movimientos">Movimientos</NuxtLink>
-        <NuxtLink v-if="isAdminActivo" to="/entidades">Entidades</NuxtLink>
-        <NuxtLink v-if="isAdminActivo" to="/cuentas">Cuentas</NuxtLink>
         <NuxtLink v-if="isAdminActivo" to="/movimientos-recurrentes">Recurrentes</NuxtLink>
+        <NuxtLink v-if="isAdminActivo" to="/cuentas">Cuentas</NuxtLink>
+        <NuxtLink v-if="isAdminActivo" to="/entidades">Entidades</NuxtLink>
         <NuxtLink v-if="isAdminActivo" to="/usuarios">Usuarios</NuxtLink>
         <NuxtLink v-if="isAdminActivo" to="/exportar">Exportar</NuxtLink>
       </nav>
