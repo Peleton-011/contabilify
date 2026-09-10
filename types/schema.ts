@@ -100,3 +100,45 @@ export type MovimientoConRelaciones = Movimiento & {
 }
 
 export type NuevoMovimiento = Omit<Movimiento, 'id' | 'created_at' | 'updated_at'>
+
+export type PeriodoRecurrencia =
+  | 'diaria'
+  | 'semanal'
+  | 'quincenal'
+  | 'mensual'
+  | 'bimestral'
+  | 'trimestral'
+  | 'semestral'
+  | 'anual'
+
+export type BaseCalculoSaldo = 'inicio' | 'promedio' | 'fin'
+
+export type MetodoRedondeo = 'matematico' | 'piso' | 'techo'
+
+export type MovimientoRecurrente = {
+  id: string
+  ledger_id: string
+  cuenta_id: string
+  entidad_id: string | null
+  tipo: TipoMovimiento
+  concepto: string
+  monto_fijo: number
+  usa_dinamico: boolean
+  porcentaje: number | null
+  base_calculo: BaseCalculoSaldo | null
+  tasa_periodo: PeriodoRecurrencia | null
+  redondeo: MetodoRedondeo
+  operacion_periodo: PeriodoRecurrencia
+  fecha_inicio: string
+  fecha_fin: string | null
+  activo: boolean
+  created_by: string | null
+  created_at: string
+}
+
+export type MovimientoRecurrenteConRelaciones = MovimientoRecurrente & {
+  entidad: Pick<Entidad, 'id' | 'nombre'> | null
+  cuenta: Pick<Cuenta, 'id' | 'nombre' | 'tipo'>
+}
+
+export type NuevoMovimientoRecurrente = Omit<MovimientoRecurrente, 'id' | 'created_at'>

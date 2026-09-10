@@ -12,6 +12,7 @@ const {
 const { cuentas, fetchCuentas } = useCuentas();
 const { entidadesActivas, fetchEntidades } = useEntidades();
 const { entradasSalidas, fetchEntradasSalidas } = useEntradasSalidas();
+const { materializarPendientes } = useMovimientosRecurrentes();
 
 const span = ref<"custom" | "month" | "year">("custom");
 
@@ -30,6 +31,7 @@ const filtros = reactive({
 	texto: "",
 });
 
+await materializarPendientes();
 await Promise.all([
 	fetchCuentas(false),
 	fetchEntidades(),

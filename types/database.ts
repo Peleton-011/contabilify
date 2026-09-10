@@ -1,4 +1,13 @@
-import type { Cuenta, Entidad, Ledger, LedgerMember, Movimiento, Profile, SaldoCuenta } from './schema'
+import type {
+  Cuenta,
+  Entidad,
+  Ledger,
+  LedgerMember,
+  Movimiento,
+  MovimientoRecurrente,
+  Profile,
+  SaldoCuenta,
+} from './schema'
 
 // Tipado mínimo de la base para el cliente de Supabase. No cubre todas las
 // variantes de Postgres, solo lo necesario para autocompletar en los
@@ -48,6 +57,18 @@ export interface Database {
         Update: Partial<Movimiento>
         Relationships: []
       }
+      movimientos_recurrentes: {
+        Row: MovimientoRecurrente
+        Insert: Partial<MovimientoRecurrente> & {
+          tipo: MovimientoRecurrente['tipo']
+          concepto: string
+          cuenta_id: string
+          ledger_id: string
+          operacion_periodo: MovimientoRecurrente['operacion_periodo']
+        }
+        Update: Partial<MovimientoRecurrente>
+        Relationships: []
+      }
     }
     Views: {
       saldos_cuentas: {
@@ -58,11 +79,19 @@ export interface Database {
         Row: { entidad_id: string; ledger_id: string; usos: number }
         Relationships: []
       }
+      movimientos_recurrentes_desactualizados: {
+        Row: { movimiento_id: string; ledger_id: string; fecha: string; recurrente_id: string }
+        Relationships: []
+      }
     }
     Functions: {
       crear_ledger: {
         Args: { p_nombre: string }
         Returns: Ledger
+      }
+      materializar_movimientos_recurrentes: {
+        Args: { p_ledger_id: string }
+        Returns: number
       }
     }
   }
