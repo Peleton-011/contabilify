@@ -46,8 +46,6 @@ interface Netos {
 
 const netos = ref<Netos[]>([]);
 const brutos = ref<Brutos[]>([]);
-watch(netos.value, () => console.log(netos.value));
-watch(brutos.value, () => console.log(brutos.value));
 
 const span = ref<"custom" | "month" | "year">("custom");
 
