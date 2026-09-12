@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import ComboChart from "@/components/ui/charts/combo-chart/ComboChart.vue";
 
-import type { Cuenta, MovimientoConRelaciones } from "~/types/schema";
+import type { Cuenta, MovimientoConRelaciones, TipoMovimiento } from "~/types/schema";
 
 const { isAdminActivo: isAdmin } = useLedgers();
 const {
@@ -55,10 +55,10 @@ watch(span, (newVal) => {
 	}
 });
 
-const filtros = reactive({
+const filtros = reactive<FiltrosMovimientos>({
 	desde: "",
 	hasta: "",
-	tipo: "" as "" | "ingreso" | "egreso",
+	tipo: null,
 	cuentaId: "",
 	entidadId: "",
 	texto: "",
@@ -70,6 +70,7 @@ await Promise.all([
 	fetchEntidades(),
 	aplicarFiltros(),
 	fetchEntradasSalidas(),
+    fetchBalanceInicial(filtros),
 	,
 ]);
 calcularBrutos();
@@ -100,7 +101,7 @@ function brutosCuenta(
 	let balance = balanceInicial.value[cuentas.value.indexOf(cuenta)] || 0;
 
 	let currentDate = nextDate(desde, dias);
-	let lastDate = desde;
+	let lastDate = sumarDias(desde, -1) ;
 	while (currentDate <= nextDate(hasta, dias)) {
 		const ingresos = movimientos.value
 			.filter(
@@ -245,7 +246,7 @@ async function aplicarFiltros() {
 function limpiarFiltros() {
 	filtros.desde = "";
 	filtros.hasta = "";
-	filtros.tipo = "";
+	filtros.tipo = null;
 	filtros.cuentaId = "";
 	filtros.entidadId = "";
 	filtros.texto = "";
