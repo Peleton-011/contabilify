@@ -27,8 +27,8 @@ interface Brutos {
 	nombre: string;
 	list: {
 		m: string;
-		ingresos: number;
 		egresos: number;
+		ingresos: number;
 		balance: number;
 	}[];
 	cuenta_id: string;
@@ -242,9 +242,6 @@ async function aplicarFiltros() {
 	});
 	calcularBrutos();
 	calcularNetos();
-	console.log(netos.value);
-	console.log(brutos.value);
-	console.log(movimientos.value);
 }
 
 function limpiarFiltros() {
@@ -404,7 +401,6 @@ function aplicarHasta() {
 				bar-field="neto"
 				line-field="balance"
 				height="320"
-                option=""
 			/>
 			<span class="balance-nombre text-muted">Ingresos vs Egresos</span>
 			<ComboChart
@@ -413,7 +409,7 @@ function aplicarHasta() {
 						?.list || []
 				"
 				x-field="m"
-				:bar-field="['ingresos', 'egresos']"
+				:bar-field="['egresos', 'ingresos']"
 				line-field="balance"
 				height="300"
 			/>
