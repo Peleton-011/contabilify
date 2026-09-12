@@ -51,7 +51,7 @@ const mergedOption = computed(() => {
       type: 'bar',
       yAxisIndex: 0,
       barMaxWidth: 28,
-      itemStyle: { color: chartColors.value[i % chartColors.value.length], borderRadius: [6, 6, 0, 0] },
+      itemStyle: { color: chartColors.value[i % chartColors.value.length], borderRadius: [2, 2, 2, 2] },
       data: props.data.map((d) => d[f]),
     })),
     ...lines.map((f, j) => ({
