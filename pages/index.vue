@@ -4,6 +4,7 @@ const { saldos, saldoTotal, fetchSaldos } = useSaldos()
 const { movimientos, fetchMovimientos } = useMovimientos()
 const { cuentaActivaId, seleccionar: seleccionarCuenta, cargarDesdeStorage } = useCuentaActiva()
 const { materializarPendientes } = useMovimientosRecurrentes()
+const {cuentas, fetchCuentas} = useCuentas()
 
 // Pone al día los movimientos recurrentes (suscripciones, comisiones,
 // intereses) antes de mostrar saldos y últimos movimientos, así una
@@ -19,7 +20,7 @@ if (saldos.value.length && !saldos.value.some((s) => s.cuenta_id === cuentaActiv
 }
 
 async function refrescar() {
-  await Promise.all([fetchSaldos(), fetchMovimientos({}, 6)])
+  await Promise.all([fetchSaldos(), fetchMovimientos({}, 6), fetchCuentas(true)])
 }
 </script>
 
@@ -41,10 +42,14 @@ async function refrescar() {
       La carga rápida registra movimientos en la cuenta activa (resaltada arriba). Toca otra tarjeta para cambiarla.
     </p>
 
-    <QuickEntry v-if="isAdmin" @guardado="refrescar" />
-    <p v-else class="card text-muted">
+    <QuickEntry v-if="isAdmin && cuentas.length" @guardado="refrescar" />
+    <p v-else-if="!isAdmin" class="card text-muted">
       Solo los administradores pueden cargar movimientos. Puedes ver el detalle en
       <NuxtLink to="/movimientos">Movimientos</NuxtLink>.
+    </p>
+    <p v-else class="card text-muted">
+      Aún no hay ninguna cuenta en este ledger
+      <NuxtLink to="/cuentas">Cuentas</NuxtLink>.
     </p>
 
     <section class="card">

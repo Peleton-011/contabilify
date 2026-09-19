@@ -197,10 +197,10 @@ async function guardarCreacion() {
 		errorCreando.value = "El concepto no puede estar vacío";
 		return;
 	}
-    if (!(creacion.tipo as "egreso" | "ingreso")) {
-        errorCreando.value = "El tipo no puede estar vacío"
-        return
-    }
+	if (!(creacion.tipo as "egreso" | "ingreso")) {
+		errorCreando.value = "El tipo no puede estar vacío";
+		return;
+	}
 
 	guardandoCreacion.value = true;
 	errorCreando.value = null;
@@ -370,7 +370,7 @@ async function borrar(m: MovimientoConRelaciones) {
 			</div>
 		</form>
 
-		<div class="table-wrap">
+		<div v-if="cuentas.length" class="table-wrap">
 			<table class="data-table">
 				<thead>
 					<tr>
@@ -623,6 +623,10 @@ async function borrar(m: MovimientoConRelaciones) {
 				</tbody>
 			</table>
 		</div>
+		<p v-else class="card text-muted">
+			Aún no hay ninguna cuenta en este ledger
+			<NuxtLink to="/cuentas">Cuentas</NuxtLink>.
+		</p>
 
 		<p v-if="errorEdicion" class="alert alert-error">{{ errorEdicion }}</p>
 	</div>

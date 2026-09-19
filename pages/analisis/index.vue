@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import ComboChart from "@/components/ui/charts/combo-chart/ComboChart.vue";
 
-import type { Cuenta, MovimientoConRelaciones, TipoMovimiento } from "~/types/schema";
+import type {
+	Cuenta,
+	MovimientoConRelaciones,
+	TipoMovimiento,
+} from "~/types/schema";
 
 const { isAdminActivo: isAdmin } = useLedgers();
 const {
@@ -70,7 +74,7 @@ await Promise.all([
 	fetchEntidades(),
 	aplicarFiltros(),
 	fetchEntradasSalidas(),
-    fetchBalanceInicial(filtros),
+	fetchBalanceInicial(filtros),
 	,
 ]);
 calcularBrutos();
@@ -101,7 +105,7 @@ function brutosCuenta(
 	let balance = balanceInicial.value[cuentas.value.indexOf(cuenta)] || 0;
 
 	let currentDate = nextDate(desde, dias);
-	let lastDate = sumarDias(desde, -1) ;
+	let lastDate = sumarDias(desde, -1);
 	while (currentDate <= nextDate(hasta, dias)) {
 		const ingresos = movimientos.value
 			.filter(
@@ -155,6 +159,7 @@ function brutosCuenta(
 }
 function calcularBrutos() {
 	brutos.value = [];
+	if (!movimientos.value.length) return;
 	let desde =
 		filtros.desde || movimientos.value[movimientos.value.length - 1].fecha;
 	const hasta = filtros.hasta || movimientos.value[0].fecha;
@@ -386,6 +391,11 @@ function aplicarHasta() {
 				</button>
 			</div>
 		</form>
+
+		<p v-if="!cuentas.length" class="card text-muted">
+			Aún no hay ninguna cuenta en este ledger
+			<NuxtLink to="/cuentas">Cuentas</NuxtLink>.
+		</p>
 
 		<div class="card" v-for="n in netos">
 			<h1>

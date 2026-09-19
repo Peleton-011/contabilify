@@ -345,7 +345,7 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 		</div>
 
 		<div v-if="mostrandoDetallesId" class="card stack recurrente-form">
-        <h2>Detalles</h2>
+			<h2>Detalles</h2>
 			<div class="summary">
 				<div class="row row-wrap">
 					<div class="row">
@@ -500,8 +500,8 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 			class="card stack recurrente-form"
 			@submit.prevent="onSubmit"
 		>
-        <h2 v-if="editandoId">Editando</h2>
-        <h2 v-else>Nuevo</h2>
+			<h2 v-if="editandoId">Editando</h2>
+			<h2 v-else>Nuevo</h2>
 
 			<div class="row row-wrap">
 				<div class="field">
@@ -685,11 +685,12 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 				{{ errorCreando }}
 			</p>
 
-			<div class="form-actions">
+			<div  class="form-actions">
 				<button
 					v-if="editandoId"
 					type="button"
 					class="btn btn-ghost"
+                    :disabled="!cuentas.length"
 					@click="cancelarEdicion"
 				>
 					Cancelar
@@ -698,7 +699,7 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 				<button
 					type="submit"
 					class="btn btn-primary"
-					:disabled="creando"
+					:disabled="creando || !cuentas.length"
 				>
 					{{
 						editandoId
@@ -709,6 +710,10 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 					}}
 				</button>
 			</div>
+			<p v-if="!cuentas.length" class="card text-muted">
+				Aún no hay ninguna cuenta en este ledger
+				<NuxtLink to="/cuentas">Cuentas</NuxtLink>.
+			</p>
 		</form>
 
 		<div class="table-wrap">
@@ -871,7 +876,7 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 	background: var(--color-bg);
 	border-radius: var(--radius-md);
 	padding: 0.9rem 1rem;
-    width: fit-content;
-    margin: 0 auto;
+	width: fit-content;
+	margin: 0 auto;
 }
 </style>
