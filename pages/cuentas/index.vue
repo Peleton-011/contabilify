@@ -72,7 +72,7 @@ async function borrar(id: string, nombre: string) {
     <form class="card cuenta-form" @submit.prevent="agregar">
       <div class="field">
         <label for="c-nombre">Nombre</label>
-        <input id="c-nombre" v-model="nuevo.nombre" type="text" class="input" placeholder="Ej. Caja chica">
+        <input id="c-nombre" v-model="nuevo.nombre" type="text" class="input" placeholder="Ej. Caja Cambio">
       </div>
       <div class="field">
         <label for="c-tipo">Tipo</label>
@@ -93,7 +93,7 @@ async function borrar(id: string, nombre: string) {
           class="input"
         >
       </div>
-      <button type="submit" class="btn btn-primary" :disabled="creando">Agregar cuenta</button>
+      <button type="submit" class="btn btn-primary" :disabled="creando">Añadir cuenta</button>
     </form>
 
     <p v-if="error" class="alert alert-error">{{ error }}</p>
