@@ -164,7 +164,7 @@ function elegir(id: string) {
 						</div>
 					</form>
 				</div>
-                
+
 				<div v-else>
 					<div class="ledger-header">
 						<span class="ledger-nombre">{{ l.nombre }}</span>
