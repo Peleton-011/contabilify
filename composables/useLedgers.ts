@@ -53,6 +53,24 @@ export function useLedgers() {
 		return data;
 	}
 
+	async function actualizarLedger(id: string, changes: Partial<Ledger>) {
+		const { error: err } = await supabase
+			.from("ledgers")
+			.update(changes)
+			.eq("id", id);
+		if (err) throw err;
+		await fetchLedgers();
+	}
+
+	async function eliminarLedger(id: string) {
+		const { error: err } = await supabase
+			.from("ledgers")
+			.delete()
+			.eq("id", id);
+		if (err) throw err;
+		await fetchLedgers();
+	}
+
 	// Si el ledger guardado en localStorage ya no es válido (o no hay
 	// ninguno elegido todavía), cae al primero de la lista.
 	function asegurarLedgerActivo() {
@@ -76,6 +94,8 @@ export function useLedgers() {
 		error,
 		fetchLedgers,
 		crearLedger,
+        actualizarLedger,
+        eliminarLedger,
 		asegurarLedgerActivo,
 		ledgerActivoId,
 		ledgerActivo,
