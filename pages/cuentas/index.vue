@@ -100,7 +100,7 @@ async function borrar(id: string, nombre: string) {
 
     <p v-if="!cuentas.length" class="card text-muted">Todavía no hay cuentas cargadas.</p>
 
-    <div v-else class="grid-balances">
+    <div v-else class="grid-balances-big">
       <div
         v-for="c in cuentas"
         :key="c.id"
