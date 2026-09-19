@@ -7,12 +7,14 @@ const {
 	fetchMovimientos,
 	actualizarMovimiento,
 	eliminarMovimiento,
+	crearMovimiento,
 	pending,
 } = useMovimientos();
 const { cuentas, fetchCuentas } = useCuentas();
 const { entidadesActivas, fetchEntidades } = useEntidades();
 const { entradasSalidas, fetchEntradasSalidas } = useEntradasSalidas();
 const { materializarPendientes } = useMovimientosRecurrentes();
+const user = useSupabaseUser();
 
 const span = ref<"custom" | "month" | "year">("custom");
 
@@ -149,6 +151,82 @@ async function guardarEdicion(id: string) {
 	}
 }
 
+const creando = ref(false);
+const errorCreando = ref<string | null>(null);
+const guardandoCreacion = ref(false);
+
+const creacion = reactive({
+	fecha: "",
+	tipo: "ingreso" as "ingreso" | "egreso" | undefined,
+	montoTexto: "",
+	concepto: "",
+	numeroFactura: "",
+	entidad_id: "" as string | "",
+	cuenta_id: "",
+});
+
+function empezarCrearMovimiento() {
+	creando.value = true;
+	creacion.fecha = "";
+	creacion.tipo = undefined;
+	creacion.montoTexto = "";
+	creacion.concepto = "";
+	creacion.numeroFactura = "";
+	creacion.entidad_id = "";
+	creacion.cuenta_id = "s";
+	errorCreando.value = null;
+}
+
+function cancelarCreacion() {
+	creando.value = false;
+	errorCreando.value = "";
+}
+
+async function guardarCreacion() {
+	const fechaNormalizada = normalizarFecha(creacion.fecha);
+	if (!fechaNormalizada) {
+		errorCreando.value = "La fecha no es válida";
+		return;
+	}
+	const monto = parseMonto(creacion.montoTexto);
+	if (!(monto > 0)) {
+		errorCreando.value = "El monto debe ser mayor a cero";
+		return;
+	}
+	if (!creacion.concepto.trim()) {
+		errorCreando.value = "El concepto no puede estar vacío";
+		return;
+	}
+    if (!(creacion.tipo as "egreso" | "ingreso")) {
+        errorCreando.value = "El tipo no puede estar vacío"
+        return
+    }
+
+	guardandoCreacion.value = true;
+	errorCreando.value = null;
+	try {
+		await crearMovimiento({
+			fecha: fechaNormalizada,
+			tipo: creacion.tipo as "egreso" | "ingreso",
+			monto,
+			concepto: creacion.concepto.trim(),
+			numero_factura: creacion.numeroFactura.trim() || null,
+			entidad_id: creacion.entidad_id || null,
+			cuenta_id: creacion.cuenta_id,
+			created_by: user.value?.id ?? null,
+			notas: null,
+			metadata: {},
+		});
+		creando.value = false;
+		await aplicarFiltros();
+	} catch (err) {
+		errorCreando.value =
+			err instanceof Error ? err.message : "No se pudo guardar";
+	} finally {
+		guardandoCreacion.value = false;
+	}
+}
+
 async function borrar(m: MovimientoConRelaciones) {
 	const avisoTransferencia = m.metadata?.transferencia_id
 		? " Es una transferencia entre cuentas: la otra mitad no se borra automáticamente, tendrás que eliminarla aparte."
@@ -199,36 +277,36 @@ async function borrar(m: MovimientoConRelaciones) {
 				</div>
 				<div class="field" id="lapse">
 					<label for="lapse">Seleccionar por:</label>
-                    <div class="radio">
-					<label for="f-sel-cus">Custom</label>
-					<input
-						id="f-sel-cus"
-						v-model="span"
-						type="radio"
-						class="input"
-						value="custom"
-					/>
-                    </div>
-                    <div class="radio">
-					<label for="f-sel-mon">Mes</label>
-					<input
-						id="f-sel-mon"
-						v-model="span"
-						type="radio"
-						class="input"
-						value="month"
-					/>
-                    </div>
 					<div class="radio">
-                    <label for="f-sel-yea">Año</label>
-					<input
-						id="f-sel-yea"
-						v-model="span"
-						type="radio"
-						class="input"
-						value="year"
-					/>
-                    </div>
+						<label for="f-sel-cus">Custom</label>
+						<input
+							id="f-sel-cus"
+							v-model="span"
+							type="radio"
+							class="input"
+							value="custom"
+						/>
+					</div>
+					<div class="radio">
+						<label for="f-sel-mon">Mes</label>
+						<input
+							id="f-sel-mon"
+							v-model="span"
+							type="radio"
+							class="input"
+							value="month"
+						/>
+					</div>
+					<div class="radio">
+						<label for="f-sel-yea">Año</label>
+						<input
+							id="f-sel-yea"
+							v-model="span"
+							type="radio"
+							class="input"
+							value="year"
+						/>
+					</div>
 				</div>
 				<div class="field">
 					<label for="f-tipo">Tipo</label>
@@ -303,7 +381,16 @@ async function borrar(m: MovimientoConRelaciones) {
 						<th>Entidad</th>
 						<th>Cuenta</th>
 						<th>Monto</th>
-						<th v-if="isAdmin"></th>
+						<th v-if="isAdmin" class="flex justify-end">
+							<button
+								type="button"
+								class="btn btn-primary"
+								:disabled="creando"
+								@click="empezarCrearMovimiento()"
+							>
+								Añadir
+							</button>
+						</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -313,6 +400,85 @@ async function borrar(m: MovimientoConRelaciones) {
 					<tr v-else-if="!movimientos.length">
 						<td colspan="8" class="text-muted">
 							No hay movimientos con estos filtros.
+						</td>
+					</tr>
+
+					<tr v-if="creando" class="fila-edicion">
+						<td>
+							<input
+								v-model="creacion.fecha"
+								type="text"
+								class="input"
+								placeholder="aaaa-mm-dd"
+							/>
+						</td>
+						<td>
+							<select v-model="creacion.tipo" class="input">
+								<option value="ingreso">Ingreso</option>
+								<option value="egreso">Egreso</option>
+							</select>
+						</td>
+						<td>
+							<input
+								v-model="creacion.concepto"
+								type="text"
+								class="input"
+							/>
+						</td>
+						<td>
+							<input
+								v-model="creacion.numeroFactura"
+								type="text"
+								class="input"
+							/>
+						</td>
+						<td>
+							<select v-model="creacion.entidad_id" class="input">
+								<option value="">Sin entidad</option>
+								<option
+									v-for="e in entidadesActivas"
+									:key="e.id"
+									:value="e.id"
+								>
+									{{ e.nombre }}
+								</option>
+							</select>
+						</td>
+						<td>
+							<select v-model="creacion.cuenta_id" class="input">
+								<option
+									v-for="c in cuentas"
+									:key="c.id"
+									:value="c.id"
+								>
+									{{ c.nombre }}
+								</option>
+							</select>
+						</td>
+						<td>
+							<input
+								v-model="creacion.montoTexto"
+								type="text"
+								inputmode="decimal"
+								class="input"
+							/>
+						</td>
+						<td class="row acciones">
+							<button
+								type="button"
+								class="btn btn-danger"
+								@click="cancelarCreacion"
+							>
+								Cancelar
+							</button>
+							<button
+								type="button"
+								class="btn btn-primary"
+								:disabled="guardandoCreacion"
+								@click="guardarCreacion()"
+							>
+								Guardar
+							</button>
 						</td>
 					</tr>
 
@@ -464,13 +630,13 @@ async function borrar(m: MovimientoConRelaciones) {
 
 <style scoped>
 .radio {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-right: 2rem;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	padding-right: 2rem;
 }
 .radio > input {
-    width: min-content;
+	width: min-content;
 }
 .filtros-grid {
 	display: grid;
@@ -479,8 +645,8 @@ async function borrar(m: MovimientoConRelaciones) {
 	margin-bottom: 1rem;
 }
 .input:disabled {
-    cursor: not-allowed;
-    color: var(--color-text-muted);
+	cursor: not-allowed;
+	color: var(--color-text-muted);
 }
 .acciones {
 	justify-content: flex-end;
