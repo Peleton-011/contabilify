@@ -84,6 +84,8 @@ const errorCreando = ref<string | null>(null);
 
 const editandoId = ref<string | null>(null);
 
+const mostrandoDetallesId = ref<string | null>(null);
+
 // Source - https://stackoverflow.com/a/60738940
 // Posted by kanine, modified by community. See post 'Timeline' for change history
 // Retrieved 2026-09-19, License - CC BY-SA 4.0
@@ -179,6 +181,7 @@ async function agregar() {
 
 function empezarEdicion(mr: MovimientoRecurrenteConRelaciones) {
 	editandoId.value = mr.id;
+	mostrandoDetallesId.value = null;
 	Object.assign(nuevo, camelizeObject(mr));
 	if (mr.monto_fijo) nuevo.montoFijoTexto = String(mr.monto_fijo);
 	if (mr.porcentaje) nuevo.porcentajeTexto = String(mr.porcentaje * 100);
@@ -260,6 +263,19 @@ async function alternarActivo(id: string, activo: boolean) {
 	await actualizarRegla(id, { activo: !activo });
 }
 
+function abrirDetalles(mr: MovimientoRecurrenteConRelaciones) {
+	editandoId.value = null;
+	mostrandoDetallesId.value = mr.id;
+	Object.assign(nuevo, camelizeObject(mr));
+	if (mr.monto_fijo) nuevo.montoFijoTexto = String(mr.monto_fijo);
+	if (mr.porcentaje) nuevo.porcentajeTexto = String(mr.porcentaje * 100);
+}
+
+function cerrarDetalles() {
+	mostrandoDetallesId.value = null;
+	Object.assign(nuevo, empty);
+}
+
 async function borrar(id: string, concepto: string) {
 	if (
 		!confirm(
@@ -267,6 +283,8 @@ async function borrar(id: string, concepto: string) {
 		)
 	)
 		return;
+	editandoId.value = null;
+	mostrandoDetallesId.value = null;
 	await eliminarRegla(id);
 }
 
@@ -326,7 +344,165 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 			}}</span>
 		</div>
 
-		<form class="card stack recurrente-form" @submit.prevent="onSubmit">
+		<div v-if="mostrandoDetallesId" class="card stack recurrente-form">
+        <h2>Detalles</h2>
+			<div class="summary">
+				<div class="row row-wrap">
+					<div class="row">
+						<span class="text-muted">Concepto</span
+						><span class="spacer" /><span>{{
+							nuevo.concepto
+						}}</span>
+					</div>
+					<div class="row">
+						<span class="text-muted">Tipo</span
+						><span class="spacer" /><span
+							:class="
+								nuevo.tipo === 'ingreso'
+									? 'text-ingreso'
+									: 'text-egreso'
+							"
+							>{{
+								nuevo.tipo.slice(0, 1).toLocaleUpperCase() +
+								nuevo.tipo.slice(1).toLocaleLowerCase()
+							}}</span
+						>
+					</div>
+					<div class="row">
+						<span class="text-muted">Cuenta</span
+						><span class="spacer" /><span>{{
+							cuentas.find((c) => c.id === nuevo.cuentaId)?.nombre
+						}}</span>
+					</div>
+				</div>
+
+				<div class="row row-wrap">
+					<div class="row">
+						<span class="text-muted">Entidad</span
+						><span class="spacer" /><span>{{
+							nuevo.entidadId
+								? entidadesPorFrecuencia.find(
+										(e) => e.id === nuevo.entidadId,
+									)?.nombre
+								: " - "
+						}}</span>
+					</div>
+				</div>
+
+				<div class="row row-wrap">
+					<div>
+						<div class="row">
+							<span class="text-muted">Monto Fijo</span
+							><span class="spacer" /><strong>{{
+								nuevo.montoFijoTexto || " - "
+							}}</strong>
+						</div>
+						<div class="row">
+							<span class="text-muted">Pagado cada</span
+							><span class="spacer" /><strong>{{
+								PERIODOS.find(
+									(p) => p.value === nuevo.operacionPeriodo,
+								)?.label || " - "
+							}}</strong>
+						</div>
+					</div>
+				</div>
+
+				<div class="row row-wrap">
+					<div>
+						<div class="row">
+							<span class="text-muted">Monto Dinámico</span
+							><span class="spacer" /><strong>{{
+								nuevo.porcentajeTexto || " - "
+							}}</strong>
+						</div>
+						<div class="row">
+							<span class="text-muted">Pagado cada</span
+							><span class="spacer" /><strong>{{
+								PERIODOS.find(
+									(p) => p.value === nuevo.tasaPeriodo,
+								)?.label || " - "
+							}}</strong>
+						</div>
+						<div class="row">
+							<span class="text-muted"
+								>Calculado sobre la base</span
+							><span class="spacer" /><strong>{{
+								nuevo.baseCalculo
+									.slice(0, 1)
+									.toLocaleUpperCase() +
+								nuevo.baseCalculo.slice(1).toLocaleLowerCase() +
+								" del periodo"
+							}}</strong>
+						</div>
+						<div class="row">
+							<span class="text-muted">Redondeado</span
+							><span class="spacer" /><strong>{{
+								REDONDEOS.find(
+									(r) => r.value === nuevo.redondeo,
+								)?.label || " - "
+							}}</strong>
+						</div>
+					</div>
+				</div>
+
+				<div class="row row-wrap">
+					<div class="row">
+						<span class="text-muted">Fecha de Inicio</span
+						><span class="spacer" /><strong>{{
+							nuevo.fechaInicio || " - "
+						}}</strong>
+					</div>
+
+					<div class="row">
+						<span class="text-muted">Fecha de Fin</span
+						><span class="spacer" /><strong>{{
+							nuevo.fechaFin || " - "
+						}}</strong>
+					</div>
+				</div>
+			</div>
+
+			<div class="summary-actions-wrapper">
+				<div class="summary-actions">
+					<button
+						type="button"
+						class="btn btn-ghost"
+						@click="
+							empezarEdicion(
+								reglas.find(
+									(r) => r.id === mostrandoDetallesId,
+								)!,
+							)
+						"
+					>
+						Editar
+					</button>
+					<button
+						type="button"
+						class="btn btn-ghost btn-danger"
+						@click="borrar(mostrandoDetallesId, nuevo.concepto)"
+					>
+						Eliminar
+					</button>
+					<button
+						type="button"
+						class="btn btn-primary"
+						@click="cerrarDetalles"
+					>
+						Cerrar detalles
+					</button>
+				</div>
+			</div>
+		</div>
+		<form
+			v-else
+			class="card stack recurrente-form"
+			@submit.prevent="onSubmit"
+		>
+        <h2 v-if="editandoId">Editando</h2>
+        <h2 v-else>Nuevo</h2>
+
 			<div class="row row-wrap">
 				<div class="field">
 					<label for="r-concepto">Concepto</label>
@@ -593,21 +769,38 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 							>
 								{{ r.activo ? "Pausar" : "Reactivar" }}
 							</button>
+
 							<button
-								v-if="!editandoId"
+								v-if="mostrandoDetallesId === r.id"
 								type="button"
-								class="btn btn-ghost btn-danger"
-								@click="empezarEdicion(r)"
+								class="btn btn-ghost btn-primary"
+								@click="cerrarDetalles()"
 							>
-								Editar
+								Cerrar
 							</button>
 							<button
 								v-else
 								type="button"
 								class="btn btn-ghost btn-danger"
-								@click="cancelarEdicion"
+								@click="abrirDetalles(r)"
+							>
+								Detalles
+							</button>
+							<button
+								v-if="editandoId === r.id"
+								type="button"
+								class="btn btn-ghost btn-primary"
+								@click="cancelarEdicion()"
 							>
 								Cancelar
+							</button>
+							<button
+								v-else
+								type="button"
+								class="btn btn-ghost btn-danger"
+								@click="empezarEdicion(r)"
+							>
+								Editar
 							</button>
 							<button
 								type="button"
@@ -654,7 +847,31 @@ function etiquetaPeriodo(p: PeriodoRecurrencia) {
 	display: flex;
 }
 
-.form-actions > * {
+.summary-actions-wrapper {
+	justify-content: end;
+	display: flex;
+}
+
+.summary-actions {
+	display: flex;
+	gap: 1rem;
+	width: 80%;
+}
+
+.form-actions > *,
+.summary-actions > * {
 	width: 100%;
+}
+
+.summary {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.5rem;
+	background: var(--color-bg);
+	border-radius: var(--radius-md);
+	padding: 0.9rem 1rem;
+    width: fit-content;
+    margin: 0 auto;
 }
 </style>
