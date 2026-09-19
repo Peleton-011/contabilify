@@ -717,14 +717,14 @@ function alPresionarEnterConcepto(evento: KeyboardEvent) {
 			</button>
 			<button
 				type="button"
-				class="btn btn-primary"
+				class="btn btn-outline"
 				@click="editarTemplate"
 			>
 				Editar plantilla
 			</button>
 			<button
 				type="button"
-				class="btn btn-primary"
+				class="btn btn-danger"
 				@click="limpiarTemplate"
 			>
 				Eliminar plantilla
