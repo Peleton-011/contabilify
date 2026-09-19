@@ -286,5 +286,6 @@ function elegir(id: string) {
 	gap: 1rem;
 	align-items: flex-start;
 	justify-content: space-between;
+    width: 100%;
 }
 </style>
